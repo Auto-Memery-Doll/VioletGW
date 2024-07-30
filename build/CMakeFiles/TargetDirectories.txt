@@ -1,0 +1,3 @@
+/home/xiugou/flow_gateway/build/CMakeFiles/lwip.dir
+/home/xiugou/flow_gateway/build/CMakeFiles/edit_cache.dir
+/home/xiugou/flow_gateway/build/CMakeFiles/rebuild_cache.dir
