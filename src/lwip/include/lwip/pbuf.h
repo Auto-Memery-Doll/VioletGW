@@ -38,6 +38,7 @@
 #ifndef LWIP_HDR_PBUF_H
 #define LWIP_HDR_PBUF_H
 
+#include "lwip/arch.h"
 #include "lwip/opt.h"
 #include "lwip/err.h"
 
@@ -219,6 +220,11 @@ struct pbuf {
 
   /** For incoming packets, this contains the input netif's index */
   u8_t if_idx;
+
+  // 
+  // 一个异步闭包
+  // 
+  void *done;
 
   /** In case the user needs to store data custom data on a pbuf */
   LWIP_PBUF_CUSTOM_DATA

@@ -1,4 +1,4 @@
-# Install script for directory: /home/xiugou/flow_gateway/src/lwip
+# Install script for directory: /home/xiugou/flow_gateway
 
 # Set the install prefix
 if(NOT DEFINED CMAKE_INSTALL_PREFIX)
@@ -40,6 +40,18 @@ endif()
 # Set default install directory permissions.
 if(NOT DEFINED CMAKE_OBJDUMP)
   set(CMAKE_OBJDUMP "/usr/bin/objdump")
+endif()
+
+if(NOT CMAKE_INSTALL_LOCAL_ONLY)
+  # Include the install script for each subdirectory.
+  include("/home/xiugou/flow_gateway/build/bin/Lwip/cmake_install.cmake")
+  include("/home/xiugou/flow_gateway/build/bin/Base/cmake_install.cmake")
+  include("/home/xiugou/flow_gateway/build/bin/Balance/cmake_install.cmake")
+  include("/home/xiugou/flow_gateway/build/bin/Cache/cmake_install.cmake")
+  include("/home/xiugou/flow_gateway/build/bin/Coroutine/cmake_install.cmake")
+  include("/home/xiugou/flow_gateway/build/bin/Throttle/cmake_install.cmake")
+  include("/home/xiugou/flow_gateway/build/bin/Test/cmake_install.cmake")
+
 endif()
 
 if(CMAKE_INSTALL_COMPONENT)

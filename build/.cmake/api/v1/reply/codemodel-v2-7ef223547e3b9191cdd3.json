@@ -1,0 +1,217 @@
+{
+	"configurations" : 
+	[
+		{
+			"directories" : 
+			[
+				{
+					"build" : ".",
+					"childIndexes" : 
+					[
+						1,
+						2,
+						3,
+						4,
+						5,
+						6,
+						7
+					],
+					"jsonFile" : "directory-.-Debug-f5ebdc15457944623624.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.10"
+					},
+					"projectIndex" : 0,
+					"source" : "."
+				},
+				{
+					"build" : "bin/Lwip",
+					"jsonFile" : "directory-bin.Lwip-Debug-d995bde6d98e142b7b8e.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.10"
+					},
+					"parentIndex" : 0,
+					"projectIndex" : 0,
+					"source" : "src/lwip",
+					"targetIndexes" : 
+					[
+						2
+					]
+				},
+				{
+					"build" : "bin/Base",
+					"jsonFile" : "directory-bin.Base-Debug-3c45498aad7da17737cf.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.10"
+					},
+					"parentIndex" : 0,
+					"projectIndex" : 1,
+					"source" : "src/base",
+					"targetIndexes" : 
+					[
+						0,
+						1
+					]
+				},
+				{
+					"build" : "bin/Balance",
+					"jsonFile" : "directory-bin.Balance-Debug-b1c97acf8b03d01ba13b.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.10"
+					},
+					"parentIndex" : 0,
+					"projectIndex" : 0,
+					"source" : "src/balance"
+				},
+				{
+					"build" : "bin/Cache",
+					"jsonFile" : "directory-bin.Cache-Debug-19793306cd6391e675bc.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.10"
+					},
+					"parentIndex" : 0,
+					"projectIndex" : 0,
+					"source" : "src/cache"
+				},
+				{
+					"build" : "bin/Coroutine",
+					"jsonFile" : "directory-bin.Coroutine-Debug-304ee753cb0f356851fc.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.10"
+					},
+					"parentIndex" : 0,
+					"projectIndex" : 0,
+					"source" : "src/coroutine"
+				},
+				{
+					"build" : "bin/Throttle",
+					"jsonFile" : "directory-bin.Throttle-Debug-0a2b4b4e88b149872b59.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.10"
+					},
+					"parentIndex" : 0,
+					"projectIndex" : 0,
+					"source" : "src/throttle"
+				},
+				{
+					"build" : "bin/Test",
+					"childIndexes" : 
+					[
+						8
+					],
+					"jsonFile" : "directory-bin.Test-Debug-859fe88546be3e0e87b4.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.10"
+					},
+					"parentIndex" : 0,
+					"projectIndex" : 0,
+					"source" : "test"
+				},
+				{
+					"build" : "bin/Test/lwip",
+					"jsonFile" : "directory-bin.Test.lwip-Debug-a1b36871deba6430c5da.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.10"
+					},
+					"parentIndex" : 7,
+					"projectIndex" : 0,
+					"source" : "test/lwip",
+					"targetIndexes" : 
+					[
+						3
+					]
+				}
+			],
+			"name" : "Debug",
+			"projects" : 
+			[
+				{
+					"childIndexes" : 
+					[
+						1
+					],
+					"directoryIndexes" : 
+					[
+						0,
+						1,
+						3,
+						4,
+						5,
+						6,
+						7,
+						8
+					],
+					"name" : "flow_gateway",
+					"targetIndexes" : 
+					[
+						2,
+						3
+					]
+				},
+				{
+					"directoryIndexes" : 
+					[
+						2
+					],
+					"name" : "flow_gateway_base",
+					"parentIndex" : 0,
+					"targetIndexes" : 
+					[
+						0,
+						1
+					]
+				}
+			],
+			"targets" : 
+			[
+				{
+					"directoryIndex" : 2,
+					"id" : "base::@8aadebfc41dfadbf8892",
+					"jsonFile" : "target-base-Debug-a3f120e596e5ab8c7bf6.json",
+					"name" : "base",
+					"projectIndex" : 1
+				},
+				{
+					"directoryIndex" : 2,
+					"id" : "clear::@8aadebfc41dfadbf8892",
+					"jsonFile" : "target-clear-Debug-f5b12f4581df2900a6ef.json",
+					"name" : "clear",
+					"projectIndex" : 1
+				},
+				{
+					"directoryIndex" : 1,
+					"id" : "lwip::@94b83cd29eed8763a765",
+					"jsonFile" : "target-lwip-Debug-4e40a952f880a11058ad.json",
+					"name" : "lwip",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 8,
+					"id" : "test_lwip_1::@483ffd7b6cc24a270783",
+					"jsonFile" : "target-test_lwip_1-Debug-ab53cc433da6a481f48b.json",
+					"name" : "test_lwip_1",
+					"projectIndex" : 0
+				}
+			]
+		}
+	],
+	"kind" : "codemodel",
+	"paths" : 
+	{
+		"build" : "/home/xiugou/flow_gateway/build",
+		"source" : "/home/xiugou/flow_gateway"
+	},
+	"version" : 
+	{
+		"major" : 2,
+		"minor" : 4
+	}
+}

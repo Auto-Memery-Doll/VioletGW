@@ -245,12 +245,15 @@ pbuf_alloc(pbuf_layer layer, u16_t length, pbuf_type type)
           PBUF_POOL_IS_EMPTY();
           /* free chain so far allocated */
           if (p) {
+            // 分配失败将之前分配的pbuf全部释放
             pbuf_free(p);
           }
           /* bail out unsuccessfully */
           return NULL;
         }
         qlen = LWIP_MIN(rem_len, (u16_t)(PBUF_POOL_BUFSIZE_ALIGNED - LWIP_MEM_ALIGN_SIZE(offset)));
+        // 因为在内存池中已经是固定了pbuf的总长度，
+        // 所以是将payload执行pbuf的末尾，也就是实际的负载的长度
         pbuf_init_alloced_pbuf(q, LWIP_MEM_ALIGN((void *)((u8_t *)q + SIZEOF_STRUCT_PBUF + offset)),
                                rem_len, qlen, type, 0);
         LWIP_ASSERT("pbuf_alloc: pbuf q->payload properly aligned",
@@ -489,6 +492,7 @@ pbuf_add_header_impl(struct pbuf *p, size_t header_size_increment, u8_t force)
 
   increment_magnitude = (u16_t)header_size_increment;
   /* Do not allow tot_len to wrap as a result. */
+  // 长度溢出
   if ((u16_t)(increment_magnitude + p->tot_len) < increment_magnitude) {
     return 1;
   }
