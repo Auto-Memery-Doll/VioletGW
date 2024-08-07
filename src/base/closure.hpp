@@ -19,7 +19,6 @@ public:
 };
 
 class ClosureQueue : public Singletion<ClosureQueue> {
-    friend Singletion<ClosureQueue>;
 public:
     using ptr = std::shared_ptr<ClosureQueue>;
 
@@ -30,11 +29,11 @@ public:
     bool init();
     bool stop();
     void join();
-
-protected:
+    
+private:
+    friend Singletion<ClosureQueue>;
     ClosureQueue() = default;
 
-private:
     bool run();
 
 private:

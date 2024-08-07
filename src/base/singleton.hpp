@@ -5,6 +5,9 @@
 #include <memory>
 #include <mutex>
 
+namespace fg {
+namespace base {
+
 template <typename T>
 class Singletion : public noncopyable {
 public:
@@ -18,7 +21,7 @@ public:
         return _obj;
     }
 
-private:
+protected:
     Singletion() = default;
     ~Singletion() = default;
 
@@ -26,5 +29,7 @@ private:
     static std::shared_ptr<T> _obj;
 };
 
+}   // base
+}   // fg
 
 #endif // !FLOW_GATEWAY_SINGLETON_HPP

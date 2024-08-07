@@ -1,48 +1,58 @@
-#include <stdlib.h>
-#include <rte_common.h>
-#include <rte_eal.h>
-#include <rte_lcore.h>
-#include <rte_log.h>
-#include <rte_mbuf.h>
-#include <rte_mbuf_core.h>
-#include <rte_mempool.h>
-#include <stdbool.h>
+/* SPDX-License-Identifier: BSD-3-Clause
+ * Copyright(c) 2010-2014 Intel Corporation
+ */
+
 #include <stdio.h>
-#include <time.h>
+#include <string.h>
+#include <stdint.h>
+#include <errno.h>
+#include <sys/queue.h>
 
-struct rte_mempool * g_mp;
-#define BUFS_NUM    1024    /* 内存块的大小 */
-#define BUFS_SIZE   32      /* 内存块的数量 */
+#include <rte_memory.h>
+#include <rte_launch.h>
+#include <rte_eal.h>
+#include <rte_per_lcore.h>
+#include <rte_lcore.h>
+#include <rte_debug.h>
 
-void inti(int argc, char ** argv, bool is_init) {
-    if (is_init && rte_eal_init(argc, argv) < 0) {
-        rte_exit(EXIT_FAILURE, "rte_eal_init() failure.\n");
-    }
-
-    struct rte_mempool *pool = rte_pktmbuf_pool_create(
-        "tempool", 
-        BUFS_NUM, 
-        0, 0, 
-        RTE_MBUF_DEFAULT_BUF_SIZE, 
-        rte_socket_id());
-    if (pool == NULL) {
-        rte_exit(EXIT_FAILURE, "create mempool failure.\n");
-    }
-
-    g_mp = pool;
-
-    printf("init success\n");
+/* Launch a function on lcore. 8< */
+static int
+lcore_hello(__rte_unused void *arg)
+{
+	unsigned lcore_id;
+	lcore_id = rte_lcore_id();
+	printf("hello from core %u\n", lcore_id);
+	return 0;
 }
+/* >8 End of launching function on lcore. */
 
-void test() {
+/* Initialization of Environment Abstraction Layer (EAL). 8< */
+int
+main(int argc, char **argv)
+{
+	int ret;
+	unsigned lcore_id;
 
-    struct rte_mbuf *buf = rte_pktmbuf_alloc(g_mp);
-    
-    rte_pktmbuf_attach(buf, buf);
-    rte_pktmbuf_clone(buf, g_mp);
-    
-}
+	ret = rte_eal_init(argc, argv);
+	if (ret < 0)
+		rte_panic("Cannot init EAL\n");
+	/* >8 End of initialization of Environment Abstraction Layer */
 
-int main(int argc, char ** argv) {
+	/* Launches the function on each lcore. 8< */
+	RTE_LCORE_FOREACH_WORKER(lcore_id) {
+		/* Simpler equivalent. 8< */
+		rte_eal_remote_launch(lcore_hello, NULL, lcore_id);
+		/* >8 End of simpler equivalent. */
+	}
 
+	/* call it on main lcore too */
+	lcore_hello(NULL);
+	/* >8 End of launching the function on each lcore. */
+
+	rte_eal_mp_wait_lcore();
+
+	/* clean up the EAL */
+	rte_eal_cleanup();
+
+	return 0;
 }

@@ -2,15 +2,29 @@
 #define FLOW_GATEWAY_DPDK_NETIF_HPP
 
 #include "base/noncopyable.hpp"
+#include "base/singleton.hpp"
 #include "base/type.hpp"
 #include "lwip/pbuf.h"
+#include <cstdint>
 #include <deque>
+#include <map>
+#include <memory>
 
 namespace fg {
 
+struct DpdkNetifInfo {
+    char mac_addr[6];
+
+};
+
+
+class DpdkNetifManager;
 // 通过dpdk虚拟出一个网卡
 class DpdkNetif : public base::noncopyable {
+    friend class DpdkNetifManager;
 public:
+    using ptr = std::shared_ptr<DpdkNetif>;
+    ~DpdkNetif();
 
     /* 提供两个接口供lwip协议栈调用 */
     auto netif_output() -> pbuf*;
@@ -19,6 +33,8 @@ public:
 
 
 private:
+    DpdkNetif() = default;
+    void init();
     void run();
 
 private:
@@ -28,6 +44,26 @@ private:
     std::deque<pbuf*> _rx_queue;
     fg_thread_t _t; // 处理收发网络数据包
 };
+
+
+class DpdkNetifManager : public base::Singletion<DpdkNetifManager> {
+    friend base::Singletion<DpdkNetifManager>;
+public:
+    using ptr = std::shared_ptr<DpdkNetifManager>;
+
+    auto get_dpdk_netif(mac_addr_t mac) -> DpdkNetif::ptr;
+
+    
+
+private:
+    std::map<int64_t, DpdkNetif::ptr> _netifs;
+
+};
+
+inline auto dpdk_netif_mg() -> DpdkNetifManager::ptr {
+    return DpdkNetifManager::GetInstance();   
+}
+
 
 // dpdk网卡驱动程序，用于连接dpdk网卡和lwip协议栈
 class DpdkNetifDriver : public base::noncopyable {

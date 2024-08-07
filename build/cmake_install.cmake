@@ -44,12 +44,7 @@ endif()
 
 if(NOT CMAKE_INSTALL_LOCAL_ONLY)
   # Include the install script for each subdirectory.
-  include("/home/xiugou/flow_gateway/build/bin/Lwip/cmake_install.cmake")
-  include("/home/xiugou/flow_gateway/build/bin/Base/cmake_install.cmake")
-  include("/home/xiugou/flow_gateway/build/bin/Balance/cmake_install.cmake")
-  include("/home/xiugou/flow_gateway/build/bin/Cache/cmake_install.cmake")
-  include("/home/xiugou/flow_gateway/build/bin/Coroutine/cmake_install.cmake")
-  include("/home/xiugou/flow_gateway/build/bin/Throttle/cmake_install.cmake")
+  include("/home/xiugou/flow_gateway/build/bin/Src/cmake_install.cmake")
   include("/home/xiugou/flow_gateway/build/bin/Test/cmake_install.cmake")
 
 endif()

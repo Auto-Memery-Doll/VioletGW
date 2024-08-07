@@ -92,7 +92,7 @@ test_lwip_1_EXTERNAL_OBJECTS =
 
 bin/Test/lwip/test_lwip_1: bin/Test/lwip/CMakeFiles/test_lwip_1.dir/test_lwip_1.cpp.o
 bin/Test/lwip/test_lwip_1: bin/Test/lwip/CMakeFiles/test_lwip_1.dir/build.make
-bin/Test/lwip/test_lwip_1: bin/Lwip/liblwip.a
+bin/Test/lwip/test_lwip_1: bin/Src/bin/Lwip/liblwip.a
 bin/Test/lwip/test_lwip_1: bin/Test/lwip/CMakeFiles/test_lwip_1.dir/link.txt
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --bold --progress-dir=/home/xiugou/flow_gateway/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_2) "Linking CXX executable test_lwip_1"
 	cd /home/xiugou/flow_gateway/build/bin/Test/lwip && $(CMAKE_COMMAND) -E cmake_link_script CMakeFiles/test_lwip_1.dir/link.txt --verbose=$(VERBOSE)

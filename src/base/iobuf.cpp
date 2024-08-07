@@ -266,7 +266,7 @@ pbuf* PbufFixChar(pbuf *p, const char c, int32_t offset) {
     } 
 
     int32_t at = offset - prefix;
-    (char*)(iter->payload)[at] = c;
+    ((char*)(iter->payload))[at] = c;
     return p;
 
 }

@@ -117,6 +117,19 @@ depend:
 .PHONY : depend
 
 #=============================================================================
+# Target rules for targets named flow_gw
+
+# Build rule for target.
+flow_gw: cmake_check_build_system
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 flow_gw
+.PHONY : flow_gw
+
+# fast build rule for target.
+flow_gw/fast:
+	$(MAKE) $(MAKESILENT) -f bin/Src/CMakeFiles/flow_gw.dir/build.make bin/Src/CMakeFiles/flow_gw.dir/build
+.PHONY : flow_gw/fast
+
+#=============================================================================
 # Target rules for targets named lwip
 
 # Build rule for target.
@@ -126,8 +139,34 @@ lwip: cmake_check_build_system
 
 # fast build rule for target.
 lwip/fast:
-	$(MAKE) $(MAKESILENT) -f bin/Lwip/CMakeFiles/lwip.dir/build.make bin/Lwip/CMakeFiles/lwip.dir/build
+	$(MAKE) $(MAKESILENT) -f bin/Src/bin/Lwip/CMakeFiles/lwip.dir/build.make bin/Src/bin/Lwip/CMakeFiles/lwip.dir/build
 .PHONY : lwip/fast
+
+#=============================================================================
+# Target rules for targets named clear
+
+# Build rule for target.
+clear: cmake_check_build_system
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 clear
+.PHONY : clear
+
+# fast build rule for target.
+clear/fast:
+	$(MAKE) $(MAKESILENT) -f bin/Src/bin/Base/CMakeFiles/clear.dir/build.make bin/Src/bin/Base/CMakeFiles/clear.dir/build
+.PHONY : clear/fast
+
+#=============================================================================
+# Target rules for targets named base
+
+# Build rule for target.
+base: cmake_check_build_system
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 base
+.PHONY : base
+
+# fast build rule for target.
+base/fast:
+	$(MAKE) $(MAKESILENT) -f bin/Src/bin/Base/CMakeFiles/base.dir/build.make bin/Src/bin/Base/CMakeFiles/base.dir/build
+.PHONY : base/fast
 
 #=============================================================================
 # Target rules for targets named test_lwip_1
@@ -142,6 +181,19 @@ test_lwip_1/fast:
 	$(MAKE) $(MAKESILENT) -f bin/Test/lwip/CMakeFiles/test_lwip_1.dir/build.make bin/Test/lwip/CMakeFiles/test_lwip_1.dir/build
 .PHONY : test_lwip_1/fast
 
+#=============================================================================
+# Target rules for targets named helloword
+
+# Build rule for target.
+helloword: cmake_check_build_system
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 helloword
+.PHONY : helloword
+
+# fast build rule for target.
+helloword/fast:
+	$(MAKE) $(MAKESILENT) -f bin/Test/dpdk/CMakeFiles/helloword.dir/build.make bin/Test/dpdk/CMakeFiles/helloword.dir/build
+.PHONY : helloword/fast
+
 # Help Target
 help:
 	@echo "The following are some of the valid targets for this Makefile:"
@@ -150,6 +202,10 @@ help:
 	@echo "... depend"
 	@echo "... edit_cache"
 	@echo "... rebuild_cache"
+	@echo "... clear"
+	@echo "... base"
+	@echo "... flow_gw"
+	@echo "... helloword"
 	@echo "... lwip"
 	@echo "... test_lwip_1"
 .PHONY : help
