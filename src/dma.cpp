@@ -79,6 +79,12 @@ struct rte_mempool *DMA_pktmbuf_pool = nullptr;
 /** 每个端口对应的mac地址，用于mac更新 */
 /** 如果 |config::DMA_mac_updating| == 1 才使用 */
 static struct rte_ether_addr g_ports_eth_addr[RTE_MAX_ETHPORTS];
+
+/** 初始化内存指针 */
+void init(struct rte_mempool * dma_mempool) {
+    DMA_pktmbuf_pool = dma_mempool;
+}
+
 static void 
 update_mac_addrs(struct rte_mbuf *m, uint32_t dest_portid) {
 
@@ -91,7 +97,7 @@ update_mac_addrs(struct rte_mbuf *m, uint32_t dest_portid) {
     /* 5 * 8 = 40, 网络字节序是小端 */
     // 最终的dst addr的形式是: 02:00:00:00:00:xx
     // 其中xx是对应的dma设备的端口号，
-    *((uint64_t *)temp) = 0x000'000'000'002 + ((uint64_t)dest_portid << 40); 
+    *((uint64_t *)temp) = 0x00'00'00'00'00'02 + ((uint64_t)dest_portid << 40); 
 
     rte_ether_addr_copy(&g_ports_eth_addr[dest_portid], &eth->src_addr);
 }
@@ -208,7 +214,7 @@ dequeue(struct rte_mbuf *src[], struct rte_mbuf *dst[], uint32_t num,
 }
 
 /** 在一个端口上接收数据包并且将其添加到 dmadev(hw) 或者 rte_ring(sw)中 */
-static void
+void
 rx_port(struct rxtx_port_config *rx_config) {
     
     int32_t ret;
@@ -287,7 +293,7 @@ handle_tx:
     }
 }
 
-static void 
+void 
 tx_port(struct rxtx_port_config *tx_config) {
 
     uint32_t nb_dq, nb_tx;
@@ -332,7 +338,7 @@ tx_port(struct rxtx_port_config *tx_config) {
 
 // todo: replace [printf] to a log api
 /** 检查是否有足够的端口可用 */
-static int
+int
 check_link_status() {
     uint32_t port_mask = config::DMA_enable_prot_mask; /** 配置的掩码，标识那个端口是可用的 */
     uint16_t portid; /** 用于遍历，类似迭代器 */
@@ -453,7 +459,7 @@ assign_rings(void) {
 }
 
 /** 多线程运行例程函数 */
-static void
+void
 rx_main_loop(void)
 {
 	uint16_t i;
@@ -467,7 +473,7 @@ rx_main_loop(void)
 			rx_port(&g_cfg.ports[i]);
 }
 
-static void
+void
 tx_main_loop(void)
 {
 	uint16_t i;
@@ -483,7 +489,7 @@ tx_main_loop(void)
 
 /** 单线程运行例程函数 */
 // todo: printf
-static void
+void
 rxtx_main_loop(void)
 {
 	uint16_t i;

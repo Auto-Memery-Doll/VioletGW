@@ -5,16 +5,39 @@
 #include "base/singleton.hpp"
 #include "base/type.hpp"
 #include "lwip/pbuf.h"
+#include "base/type.hpp"
 #include <cstdint>
 #include <deque>
 #include <map>
+#include <rte_ether.h>
+#include <rte_mbuf_core.h>
+#include <rte_mempool.h>
 #include <memory>
+
+namespace fg {
+namespace dpdk {
+
+extern struct rte_mempool *DPDK_mempool;
+extern struct rte_ether_addr DPDK_ether_addr[];
+
+void init(int argc, char *argv[]);
+
+inline int rx_burst(
+    uint16_t port_id, uint16_t queue_id, struct rte_mbuf **rx_pkts, uint16_t nb_pkts);
+
+inline int tx_burst(
+    uint16_t port_id, uint16_t queue_id, struct rte_mbuf **tx_pkts, uint16_t nb_pkts);
+
+inline rte_mbuf* get_mbuf();
+
+}   // dpdk
+}   // fg
+
 
 namespace fg {
 
 struct DpdkNetifInfo {
     char mac_addr[6];
-
 };
 
 
