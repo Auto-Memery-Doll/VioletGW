@@ -2,10 +2,12 @@
 #define FLOW_GATEWAY_DPDK_NETIF_HPP
 
 #include "base/closure.hpp"
+#include "base/netif.hpp"
 #include "base/noncopyable.hpp"
 #include "base/ring.hpp"
 #include "base/singleton.hpp"
 #include "base/type.hpp"
+#include "base/util.hpp"
 #include "lwip/pbuf.h"
 #include "base/type.hpp"
 #include <cstdint>
@@ -83,27 +85,29 @@ private:
     uint16_t    _mbuf_data_off;
 };
 
+class NetifDriver;
 class DpdkNetifManager;
 // 通过dpdk虚拟出一个网卡
-class DpdkNetif : public base::noncopyable {
+class DpdkNetif : public Netif {
     friend class DpdkNetifManager;
+    friend class NetifDriver;
 public:
-    using ptr = std::shared_ptr<DpdkNetif>;
     ~DpdkNetif();
 
     /* 提供两个接口供lwip协议栈调用 */
-    auto netif_rx() -> pbuf*;
-    auto netif_tx(pbuf *pbuf_chain) -> void;
+    auto netif_rx() -> pbuf* override;
+    auto netif_tx(pbuf *pbuf_chain) -> void override;
 
+private:
     /** 向网络中发送和接收数据 */
     auto netif_send() -> void;
     auto netif_recv() -> void;
 
-private:
+
     DpdkNetif() = default;
     void init(int port);
-    static void* run_recv(void *arg);
-    static void* run_send(void *arg);
+    static int run_recv(void *arg);
+    static int run_send(void *arg);
 
 private:
     uint16_t port_id;
@@ -114,28 +118,24 @@ private:
 
 /** vnetif的管理类 */
 class DpdkNetifManager : public base::Singletion<DpdkNetifManager> {
-    friend base::Singletion<DpdkNetifManager>;
+    friend class base::Singletion<DpdkNetifManager>;
+    friend class NetifDriver;
 public:
     using ptr = std::shared_ptr<DpdkNetifManager>;
 
-    auto get_dpdk_netif(mac_addr_t mac) -> DpdkNetif::ptr;
-
-    
+    auto init() -> void;
+    auto stop() -> void;
+    auto get_netif(int port) -> DpdkNetif*;
 
 private:
-    std::map<int64_t, DpdkNetif::ptr> _netifs;
-
+    // port:netif*
+    std::map<int, DpdkNetif*> _netifs;
+    util::SpinMutex _mtx; // 保证并发安全
 };
 
 inline auto dpdk_netif_mg() -> DpdkNetifManager::ptr {
     return DpdkNetifManager::GetInstance();   
 }
-
-
-// dpdk网卡驱动程序，用于连接dpdk网卡和lwip协议栈
-class DpdkNetifDriver : public base::noncopyable {
-
-};
 
 }   // base
 

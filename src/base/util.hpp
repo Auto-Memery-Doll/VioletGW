@@ -1,9 +1,12 @@
 #ifndef FLOW_GATEWAY_UTIL_HPP
 #define FLOW_GATEWAY_UTIL_HPP
 
-
+#include "base/noncopyable.hpp"
 #include "base/type.hpp"
+#include <chrono>
 #include <cstdint>
+#include <mutex>
+#include <rte_ether.h>
 #include <string>
 namespace fg {
 namespace util {
@@ -19,17 +22,47 @@ bool int64_to_mac(int64_t i_mac, mac_addr_t mac);
 /// 将注册一个信号
 void reg_signal(int signal);
 
+/// 将一个数变为字符串
+std::string itoa(int i);
+
 /// 根据port id创建vnetif的ring的名字
 inline std::string TX_RING_NAME(int port) {
-
-    
+    static std::string name = "fg_tx_ring_";
+    return name + itoa(port);
 }
 
+/// 根据port id创建vntif的ring的名字
 inline  std::string RX_RING_NAME(int port) {
-
+    static std::string name = "fg_rx_ring_";
+    return name + itoa(port);
 }
 
-}
-}
+/// 将网卡的mac地址输出
+#define FG_MAC_DUMP_LEN 30
+void mac_dump(char *str, const rte_ether_addr& addr);
+
+/// fg_spinlock_t
+class SpinMutex : public base::noncopyable {
+public:
+    void lock();
+    void unlock();
+
+private:
+    friend class std::unique_lock<SpinMutex>;
+    void try_lock() {}
+    template<typename Rep, typename Period>
+    void try_lock_for(const std::chrono::duration<Rep, Period> &) {}
+    template<typename Clock, typename Duration>
+    void try_lock_until(const std::chrono::time_point<Clock, Duration> &) {}
+    void mutex() const {}
+    void release() {}
+    void swap(SpinMutex&) {}
+private:
+    spinlock_t _mtx;
+};
+
+
+}   // util
+}   // fg
 
 #endif // !FLOW_GATEWAY_UTIL_HPP

@@ -13,6 +13,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <mutex>
 #include <rte_build_config.h>
 #include <rte_common.h>
 #include <rte_eal.h>
@@ -55,11 +56,6 @@ static struct rte_eth_conf g_port_conf = {
 
     },
 };
-
-static struct rte_eth_dev_info g_dev_info = {
-
-};
-
 
 /** 获取配置信息中每个端口的接收队列和发送队列的数量 */
 static uint16_t g_nb_rx_desc = config::DPDK_rx_queue_num; 
@@ -425,11 +421,11 @@ DpdkNetif::~DpdkNetif() {
 }
 
 void DpdkNetif::init(int port) {
-    _rx_ring = make_ring<rte_mbuf*>(
+    _rx_ring = make_ring<rte_mbuf>(
             util::RX_RING_NAME(port).c_str(), 
             config::VDEV_rx_ring_num, 
             config::VDEV_rx_ring_mode);
-    _tx_ring = make_ring<rte_mbuf*>(
+    _tx_ring = make_ring<MbufPbufAdapter>(
             util::TX_RING_NAME(port).c_str(), 
             config::VDEV_tx_ring_num, 
             config::VDEV_tx_ring_mode);
@@ -508,18 +504,78 @@ void DpdkNetif::netif_send() {
         usleep(config::VDEV_tx_sleep);
 }
 
-void* DpdkNetif::run_recv(void *arg) {
+int DpdkNetif::run_recv(void *arg) {
     DpdkNetif *vnetif = (DpdkNetif*)arg;
     while (vnetif->stop) {
         vnetif->netif_recv();
     }
 }
 
-void* DpdkNetif::run_send(void *arg) {
+int DpdkNetif::run_send(void *arg) {
     DpdkNetif *vnetif = (DpdkNetif*)arg;
     while (vnetif->stop) {
         vnetif->netif_send();
     }
+}
+
+//
+//
+// DpdkNetifManager
+void DpdkNetifManager::init() {
+    std::unique_lock<util::SpinMutex> lock(_mtx);
+
+    /** 根据用户给定掩码初始化虚拟网卡 */
+    uint32_t port_mask = config::DPDK_vaild_port_marks;
+
+    /** 当前cpu的di */
+    // todo: 需要根据实际情况做调整
+    unsigned int cur_id = rte_lcore_id();
+    unsigned int rx_id = rte_get_next_lcore(cur_id, true,false);
+    unsigned int tx_id = rte_get_next_lcore(rx_id, true, false);
+    int cnt = 0;
+
+    for (int i = 0; i < 32; ++ i) {
+        if (!(port_mask & (1 << i)))
+            continue;
+
+        DpdkNetif *netif = new DpdkNetif;
+        assert(netif != nullptr);
+        _netifs.insert({i, netif});
+
+        /** 将运行线程绑定一个核心上 */
+        rte_eal_remote_launch(DpdkNetif::run_send, netif, tx_id);
+        rte_eal_remote_launch(DpdkNetif::run_recv, netif, rx_id);
+
+        char mac_addr[FG_MAC_DUMP_LEN];
+        util::mac_dump(mac_addr, dpdk::DPDK_ether_addr[i]);
+        printf("init port %d: %s\n", i, mac_addr);
+
+        /** 达到配置的核心最大数量，向下一个核心进行绑定(这里假设网卡的数量不会超过核心数*每核心最大网卡数) */
+        if (cnt == config::VDEV_core_max_rxtx) {
+            cnt = 0;
+            rx_id = rte_get_next_lcore(tx_id, true, false);
+            tx_id = rte_get_next_lcore(rx_id, true, false);
+        }
+    }
+}
+
+void DpdkNetifManager::stop() {
+    std::unique_lock<util::SpinMutex> lock(_mtx);
+
+    for (auto &entry : _netifs) {
+        entry.second->stop = true;
+    }
+}
+
+DpdkNetif* DpdkNetifManager::get_netif(int port) {
+    std::unique_lock<util::SpinMutex> lock(_mtx);
+    auto it = _netifs.find(port);
+    lock.unlock();
+
+    if (it == _netifs.end()) {
+        return nullptr;
+    }
+    return it->second;
 }
 
 }   // fg

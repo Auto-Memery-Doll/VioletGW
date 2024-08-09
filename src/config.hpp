@@ -127,6 +127,9 @@ const int VDEV_tx_sleep = 10; // us
 /** 当网卡的rx_ring空了的时候，睡眠等待的时间间隔 */
 const int VDEV_rx_sleep = 10; // us
 
+/** 每个核心上运行的网卡的接收和发送线程的数量 */
+const int VDEV_core_max_rxtx = 2;
+
 }   // config
 }   // fg
 
