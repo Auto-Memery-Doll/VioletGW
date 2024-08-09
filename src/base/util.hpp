@@ -4,6 +4,7 @@
 
 #include "base/type.hpp"
 #include <cstdint>
+#include <string>
 namespace fg {
 namespace util {
 
@@ -17,6 +18,16 @@ bool int64_to_mac(int64_t i_mac, mac_addr_t mac);
 
 /// 将注册一个信号
 void reg_signal(int signal);
+
+/// 根据port id创建vnetif的ring的名字
+inline std::string TX_RING_NAME(int port) {
+
+    
+}
+
+inline  std::string RX_RING_NAME(int port) {
+
+}
 
 }
 }

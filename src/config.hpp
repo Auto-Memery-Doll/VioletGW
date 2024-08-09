@@ -60,23 +60,29 @@ const uint32_t DMA_batch_sz = 64;
 
 /********************* DPDK base configuration ******************/
 /** dpdk 内存池的名字 */
-const char DPDK_mempool_name[] = "flow_gateway_mempool";
+const char DPDK_mempool_name[] = "flow_gateway_dpdk_mempool";
+/** 用来给lwip pbuf进行转换的mempool */
+const char LWIP_mempool_name[] = "flow_gateway_dpdk_mempool";
 
 /** dpdk 全局内存池中的内存块的size */
 const unsigned DPDK_mempool_block_size = 1024;
+const unsigned LWIP_mempool_block_size = 0;/** 因为需要使用pbuf的负载 */
 
 /** dpdk 全局内存池的中的内存块的数量 */
 const uint16_t DPDK_mempool_block_num = RTE_MBUF_DEFAULT_BUF_SIZE;
+const uint16_t LWIP_mempool_block_num = RTE_MBUF_DEFAULT_BUF_SIZE;
 
 /** dpdk 内存池的cache的大小 */
 // 1.用于存储与数据包处理相关的缓存信息
 // 2.用于提高数据包处理的性能
 const unsigned DPDK_mempool_cache_size = 0;
+const unsigned LWIP_mempool_cache_size = 0;
 
 /** dpdk private区域的大小 */
 // 1.用于存储特定于数据包的私有数据
 // 2.可以进行定制化开发和使用
 const unsigned DPDK_mempool_private_size = 0;
+const unsigned LWIP_mempool_private_size = 0;
 
 /** LRO large receive offload 聚合包的最大大小 */
 // LRO是一种技术，它可以将多个小数据包合并成一个大数据包，以减少处理开销
@@ -99,17 +105,27 @@ const bool DPDK_rx_config_default = true;
 const uint16_t DPDK_tx_queue_num = 1;
 const uint16_t DPDK_rx_queue_num = 1;
 
-/********************* DPDK vdevice configuration ***************/
-/** dpdk device的接收队列和发送队列的数量 */
-// 默认为1（单队列模式）
-const int VDEV_tx_queue_num = 1;
-const int VDEV_rx_queue_num = 1;
-
-/** dpdk device 一次从网卡上接收的数据包的最大数量 */
-const int VDEV_rx_burst_num = 32;
-
 /** eth数据帧的最大长度 */
 const uint32_t DPDK_max_frame_size = 1024;
+
+/********************* DPDK vdevice configuration ***************/
+/** dpdk device 一次从网卡上接收的数据包的最大数量 */
+const int VDEV_rx_burst_num = 32;
+/** dpdk device 一次发送到网卡上的数据包的最大数量 */
+const int VDEV_tx_burst_num = 32;
+
+/** vnetif的接收队列和发送的队列的空间 */
+const uint16_t VDEV_tx_ring_num = 32;
+const uint16_t VDEV_rx_ring_num = 32;
+
+/** vnetif的接收队列和发送队列的工作模式（默认为multi-pro-multi-con */
+const uint16_t VDEV_tx_ring_mode = 0;
+const uint16_t VDEV_rx_ring_mode = 0;
+
+/** 当网卡的tx_ring满了的时候，睡眠等待的时间间隔 */
+const int VDEV_tx_sleep = 10; // us
+/** 当网卡的rx_ring空了的时候，睡眠等待的时间间隔 */
+const int VDEV_rx_sleep = 10; // us
 
 }   // config
 }   // fg

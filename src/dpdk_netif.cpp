@@ -1,6 +1,13 @@
 #include "dpdk_netif.hpp"
+#include "base/closure.hpp"
+#include "base/iobuf.hpp"
+#include "base/ring.hpp"
+#include "base/type.hpp"
+#include "base/util.hpp"
+#include "lwip/arch.h"
 #include "lwip/pbuf.h"
 #include "config.hpp"
+#include <cassert>
 #include <cstddef>
 #include <cstdint>
 #include <cstdio>
@@ -12,10 +19,12 @@
 #include <rte_errno.h>
 #include <rte_ethdev.h>
 #include <rte_ether.h>
+#include <rte_launch.h>
 #include <rte_lcore.h>
 #include <rte_mbuf.h>
 #include <rte_mbuf_core.h>
 #include <rte_mempool.h>
+#include <rte_ring_core.h>
 #include <unistd.h>
 
 namespace fg {
@@ -23,6 +32,7 @@ namespace dpdk {
 
 /** 全局内存池 */
 struct rte_mempool *DPDK_mempool;
+static struct rte_mempool *LWIP_mempool;
 /** 每个端口对应的mac地址（只使用ipv4，ipv6是没有mac地址的） */
 struct rte_ether_addr DPDK_ether_addr[RTE_MAX_ETHPORTS];
 
@@ -266,9 +276,21 @@ void init(int argc, char *argv[]) {
         rte_socket_id());
     if (temp == NULL) {
         rte_exit(EXIT_FAILURE, 
-            "rte_pktmbuf_pool_create() failure.\n");
+            "rte_pktmbuf_pool_create() failure(%s)\n", config::DPDK_mempool_name);
     }
     DPDK_mempool = temp;
+
+    temp = rte_pktmbuf_pool_create(
+        config::LWIP_mempool_name, 
+        config::LWIP_mempool_block_num, 
+        config::LWIP_mempool_cache_size, 
+        config::LWIP_mempool_private_size, 
+        config::LWIP_mempool_block_size, 
+        rte_socket_id());
+    if (temp == NULL) {
+        rte_exit(EXIT_FAILURE, 
+            "rte_pktmbuf_pool_create() failure(%s)\n", config::LWIP_mempool_name);
+    }
 
     /** 初始化使用的端口 */
     port_init();
@@ -276,6 +298,15 @@ void init(int argc, char *argv[]) {
     /** 等待有链路变得可用 */
     while (!check_link_status()) 
         sleep(1);
+}
+
+/** 释放相关的资源 */
+void clean() {
+    /** 等待每一个线程结束 */
+    rte_eal_mp_wait_lcore();
+
+    /** 释放资源 */
+    rte_eal_cleanup();
 }
 
 /** 从网卡上接收数据包 */
@@ -295,8 +326,10 @@ int tx_burst(uint16_t port_id,
 
 /** 向内存池内申请一个mbuf */
 // todo:
-rte_mbuf * get_mbuf() {
-    struct rte_mbuf * buf_ = rte_pktmbuf_alloc(DPDK_mempool);
+rte_mbuf * get_mbuf(bool is_pbuf_to) {
+    struct rte_mbuf * buf_ = is_pbuf_to 
+                                ?   rte_pktmbuf_alloc(LWIP_mempool) 
+                                :   rte_pktmbuf_alloc(DPDK_mempool);
     if (!buf_) {
         printf("there is no mbuf in g_mempool.\n");
         return nullptr;
@@ -309,20 +342,184 @@ rte_mbuf * get_mbuf() {
 
 namespace fg {
 
-void DpdkNetif::init() {
-
+//
+//
+// MbufPbufAdapter
+MbufPbufAdapter::MbufPbufAdapter(MbufPbufAdapter::Type type, void *buf) {
+    do {
+        if (type == Type::mbuf_to_pbuf) {
+            _mbuf = (mbuf*)buf;/** void -> rte_mbuf -> mbuf */
+            _pbuf = mbuf_to_pbuf(buf, this);
+            break;   
+        }
+        if (type == Type::pbuf_to_mbuf) {
+            _pbuf = (pbuf*)buf;
+            _mbuf = pbuf_to_mbuf(buf, this);
+            break;   
+        }
+    } while(0);
 }
 
-void DpdkNetif::netif_input(pbuf *pbuf_chain) {
+void * MbufPbufAdapter::Run() {
+    do {
+        // 应用层已经将这个pbuf使用完了，将mbuf和pbuf归还到内存池
+        if (_type == Type::mbuf_to_pbuf) {
+            if (_forward) {
+                _type = Type::pbuf_to_mbuf;
+                continue;
+            }
+            PbufFree(_pbuf);
+            // 异步释放
+            base::closure_queue()->commit(_mbuf);
+            delete this;
+            break;
+        }
 
+        // 应用层将pbuf传递到dpdk
+        // 需要等待dpdk将数据包发送到网络中
+        if (_type == Type::pbuf_to_mbuf) {
+            if (_forward) {
+                _forward = false;
+                _type = Type::mbuf_to_pbuf;
+                continue;
+            }
+            _mbuf->buf_addr = _mbuf_buf_addr;
+            _mbuf->data_off = _mbuf_data_off;
+            base::closure_queue()->commit(_mbuf);
+            PbufFree(_pbuf);
+        }
+    } while(1);
+    return NULL;
 }
 
-pbuf* DpdkNetif::netif_output() {
+mbuf *MbufPbufAdapter::pbuf_to_mbuf(void *buf, void* done) {
+    struct rte_mbuf * mbuf_ = dpdk::get_mbuf();
+    pbuf *pbuf_ = (struct pbuf*)buf;
+    mbuf_->data_len = pbuf_->len;
+    mbuf_->pkt_len = pbuf_->tot_len;
 
+    ((MbufPbufAdapter*)done)->_mbuf_buf_addr = mbuf_->buf_addr;
+    ((MbufPbufAdapter*)done)->_mbuf_data_off = mbuf_->data_off;
+    mbuf_->buf_addr = pbuf_->payload;
+    mbuf_->data_off = 0;
 }
 
-void DpdkNetif::run() {
+pbuf *MbufPbufAdapter::mbuf_to_pbuf(void *buf, void* done) {
+    struct rte_mbuf* mbuf_ = (struct rte_mbuf*)buf;
+    pbuf *pbuf_ = GetEmptyPbuf();
+
+    void *payload = rte_pktmbuf_mtod(mbuf_, struct rte_mbuf*);
+    u16_t total_len = rte_pktmbuf_pkt_len(mbuf_);   /** 完整报文的长度 */
+    u16_t len = rte_pktmbuf_data_len(mbuf_);    /** 当前报文的长度 */
+    SetEmptyPbuf(pbuf_, payload, total_len, len, done);
+
+    return pbuf_;
+}
+
+//
+//
+// DpdkNetif
+
+DpdkNetif::~DpdkNetif() {
+    printf("vnetif %d is down.\n", port_id);
+}
+
+void DpdkNetif::init(int port) {
+    _rx_ring = make_ring<rte_mbuf*>(
+            util::RX_RING_NAME(port).c_str(), 
+            config::VDEV_rx_ring_num, 
+            config::VDEV_rx_ring_mode);
+    _tx_ring = make_ring<rte_mbuf*>(
+            util::TX_RING_NAME(port).c_str(), 
+            config::VDEV_tx_ring_num, 
+            config::VDEV_tx_ring_mode);
+}
+
+// todo: printf -> log
+void DpdkNetif::netif_tx(pbuf *pbuf_chain) {
+    int size = 0;
+    MbufPbufAdapter* bufs[config::VDEV_tx_burst_num];
+
+    pbuf_iter it = pbuf_chain;
+    while (size != config::VDEV_tx_burst_num && it) {
+        bufs[size] = (MbufPbufAdapter*)pbuf_chain->done;
+        ++size;
+        it = it->next;
+    }
+
+    int ret = 0; 
+    while ((ret += _tx_ring->push_burst(bufs + ret, size - ret)) != size)
+        usleep(config::VDEV_tx_sleep);
+}
+
+pbuf* DpdkNetif::netif_rx() {
+    int _size;
+    while (0 == (_size = _rx_ring->free_size())) 
+        usleep(config::VDEV_rx_sleep);
+
+    const int size = _size;
+    rte_mbuf *mbufs[size];
+    int  ret = _rx_ring->pop_burst(mbufs, size);
+    assert(ret == size);
+
+    MbufPbufAdapter* bufs[size];
+    pbuf vhead;
+    pbuf_iter it = &vhead;
+    for (int i = 0; i < size; ++ i) {
+        bufs[i] = new MbufPbufAdapter(MbufPbufAdapter::Type::mbuf_to_pbuf, mbufs[i]);
+        it->next = bufs[i]->_pbuf;
+        it = it->next;
+    }
+    return vhead.next;
+}
+
+void DpdkNetif::netif_recv() {
+    static rte_mbuf *mbufs[config::VDEV_rx_burst_num];
+    int size, ret = 0;
+    for (int i = 0; i < config::DPDK_rx_queue_num; ++ i) {
+        memset(mbufs, 0, sizeof(mbufs));
+        size = 0, ret = 0;
+        
+        while (0 == (size = dpdk::rx_burst(port_id, i, 
+            mbufs, config::VDEV_rx_burst_num)));
+            usleep(config::VDEV_rx_sleep);
+
+        while ((ret += _rx_ring->push_burst(mbufs, size - ret)) != size)
+            usleep(config::VDEV_rx_sleep);
+    }
+}
+
+void DpdkNetif::netif_send() {
+    static MbufPbufAdapter *adaters[config::VDEV_tx_burst_num];
+
+    int size = 0;
+    memset(adaters, 0, sizeof(adaters));
+    while (0 == (size = _tx_ring->pop_burst(adaters, config::VDEV_tx_burst_num)))
+        usleep(config::VDEV_tx_sleep);
     
+    // 发送负载没有意义，直接不负载均衡了
+    static rte_mbuf *mbufs[config::VDEV_tx_burst_num];
+    memset(mbufs, 0, sizeof(mbufs));
+    for (int i = 0; i < size; ++ i) {
+        mbufs[i] = adaters[i]->_mbuf;
+    }
+    int ret = 0;
+    while (size != (ret += dpdk::tx_burst(port_id, 0, mbufs + ret, size - ret)))
+        usleep(config::VDEV_tx_sleep);
+}
+
+void* DpdkNetif::run_recv(void *arg) {
+    DpdkNetif *vnetif = (DpdkNetif*)arg;
+    while (vnetif->stop) {
+        vnetif->netif_recv();
+    }
+}
+
+void* DpdkNetif::run_send(void *arg) {
+    DpdkNetif *vnetif = (DpdkNetif*)arg;
+    while (vnetif->stop) {
+        vnetif->netif_send();
+    }
 }
 
 }   // fg

@@ -16,6 +16,7 @@ using pbuf_iter = pbuf*;
 
 using mac_addr_t = char[6];
 
+
 }
 
 #endif // !FLOW_GATEWAY_TYPE_HPP
