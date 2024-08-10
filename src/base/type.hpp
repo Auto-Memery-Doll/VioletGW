@@ -22,7 +22,7 @@ using mac_addr_t = struct rte_ether_addr;
 
 using spinlock_t = rte_spinlock_t;
 
-using LwipNetif = struct netif;
+//using LwipNetif = struct netif;
 using lwip_netif_t = struct netif*;
 
 }

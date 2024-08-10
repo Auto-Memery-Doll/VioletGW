@@ -3,6 +3,7 @@
 
 #include "base/noncopyable.hpp"
 #include "base/type.hpp"
+#include "lwip/ip4_addr.h"
 #include <chrono>
 #include <cstdint>
 #include <mutex>
@@ -61,6 +62,34 @@ private:
     spinlock_t _mtx;
 };
 
+/// 生成lwip netif的name
+extern char LWIP_netif_name_format[];
+inline char * lwip_name(char format[], int port);
+#define LWIP_NETIF_NAME(port) util::lwip_name(util::LWIP_netif_name_format, port)
+
+/// 生成一个网关地址
+#define GW_ADDR(_1, _2, _3, _4)                             \
+const struct ip4_addr LWIP_gw_adddr = []() -> struct ip4_addr {  \
+    struct ip4_addr gw_addr;                                \
+    IP4_ADDR(&gw_addr, _1, _2, _3, _4);                     \
+    return gw_addr;                                         \
+}()
+
+/// 生成一个网络掩码
+#define NETMASK_ADDR(_1, _2, _3, _4)                                \
+const struct ip4_addr LWIP_netmask_adddr = []() -> struct ip4_addr {     \
+    struct ip4_addr netmask_addr;                                   \
+    IP4_ADDR(&netmask_addr, _1, _2, _3, _4);                        \
+    return netmask_addr;                                            \
+}()
+
+/// 生成一个ip地址
+#define IP_ADDR(num, _1, _2, _3, _4)                                \
+const struct ip4_addr LWIP_ip_##num##_addr = []() -> struct ip4_addr {   \
+    struct ip4_addr ip_addr;                                        \
+    IP4_ADDR(&ip_addr, _1, _2, _3, _4);                             \
+    return ip_addr;                                                 \
+}()
 
 }   // util
 }   // fg

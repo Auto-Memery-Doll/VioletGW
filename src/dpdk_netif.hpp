@@ -3,20 +3,19 @@
 
 #include "base/closure.hpp"
 #include "base/netif.hpp"
-#include "base/noncopyable.hpp"
 #include "base/ring.hpp"
 #include "base/singleton.hpp"
-#include "base/type.hpp"
 #include "base/util.hpp"
 #include "lwip/pbuf.h"
-#include "base/type.hpp"
 #include <cstdint>
 #include <map>
+#include <rte_cycles.h>
 #include <rte_ether.h>
 #include <rte_mbuf.h>
 #include <rte_mbuf_core.h>
 #include <rte_mempool.h>
 #include <memory>
+#include <rte_timer.h>
 
 namespace fg {
 namespace dpdk {
@@ -122,10 +121,15 @@ class DpdkNetifManager : public base::Singletion<DpdkNetifManager> {
     friend class NetifDriver;
 public:
     using ptr = std::shared_ptr<DpdkNetifManager>;
+    ~DpdkNetifManager();
 
     auto init() -> void;
     auto stop() -> void;
     auto get_netif(int port) -> DpdkNetif*;
+
+private:
+    DpdkNetifManager() = default;
+
 
 private:
     // port:netif*

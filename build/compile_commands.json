@@ -16,6 +16,11 @@
 },
 {
   "directory": "/home/xiugou/flow_gateway/build",
+  "command": "/usr/bin/c++ -I/home/xiugou/flow_gateway/src -I/home/xiugou/flow_gateway/src/lwip/include -I/home/xiugou/flow_gateway/src/lwip/user -g -g -w -o bin/Src/CMakeFiles/flow_gw.dir/netif_driver.cpp.o -c /home/xiugou/flow_gateway/src/netif_driver.cpp",
+  "file": "/home/xiugou/flow_gateway/src/netif_driver.cpp"
+},
+{
+  "directory": "/home/xiugou/flow_gateway/build",
   "command": "/usr/bin/c++ -I/home/xiugou/flow_gateway/src -I/home/xiugou/flow_gateway/src/lwip/include -I/home/xiugou/flow_gateway/src/lwip/user -g -g -w -o bin/Src/CMakeFiles/flow_gw.dir/socket_api.cpp.o -c /home/xiugou/flow_gateway/src/socket_api.cpp",
   "file": "/home/xiugou/flow_gateway/src/socket_api.cpp"
 },

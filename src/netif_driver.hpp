@@ -4,9 +4,11 @@
 namespace fg {
 
 class NetifDriver {
-
-
-
+public:
+    static void input(int port);
+private:
+    NetifDriver() = delete;
+    ~NetifDriver() = delete;
 };
 
 }   // fg

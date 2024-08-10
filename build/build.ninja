@@ -98,6 +98,13 @@ build bin/Src/CMakeFiles/flow_gw.dir/main.cpp.o: CXX_COMPILER__flow_gw_Debug /ho
   OBJECT_DIR = bin/Src/CMakeFiles/flow_gw.dir
   OBJECT_FILE_DIR = bin/Src/CMakeFiles/flow_gw.dir
 
+build bin/Src/CMakeFiles/flow_gw.dir/netif_driver.cpp.o: CXX_COMPILER__flow_gw_Debug /home/xiugou/flow_gateway/src/netif_driver.cpp || cmake_object_order_depends_target_flow_gw
+  DEP_FILE = bin/Src/CMakeFiles/flow_gw.dir/netif_driver.cpp.o.d
+  FLAGS = -g -g -w
+  INCLUDES = -I/home/xiugou/flow_gateway/src -I/home/xiugou/flow_gateway/src/lwip/include -I/home/xiugou/flow_gateway/src/lwip/user
+  OBJECT_DIR = bin/Src/CMakeFiles/flow_gw.dir
+  OBJECT_FILE_DIR = bin/Src/CMakeFiles/flow_gw.dir
+
 build bin/Src/CMakeFiles/flow_gw.dir/socket_api.cpp.o: CXX_COMPILER__flow_gw_Debug /home/xiugou/flow_gateway/src/socket_api.cpp || cmake_object_order_depends_target_flow_gw
   DEP_FILE = bin/Src/CMakeFiles/flow_gw.dir/socket_api.cpp.o.d
   FLAGS = -g -g -w
@@ -127,7 +134,7 @@ build bin/Src/CMakeFiles/flow_gw.dir/tbuf.cpp.o: CXX_COMPILER__flow_gw_Debug /ho
 #############################################
 # Link the executable bin/Src/flow_gw
 
-build bin/Src/flow_gw: CXX_EXECUTABLE_LINKER__flow_gw_Debug bin/Src/CMakeFiles/flow_gw.dir/dma.cpp.o bin/Src/CMakeFiles/flow_gw.dir/dpdk_netif.cpp.o bin/Src/CMakeFiles/flow_gw.dir/main.cpp.o bin/Src/CMakeFiles/flow_gw.dir/socket_api.cpp.o bin/Src/CMakeFiles/flow_gw.dir/stack.cpp.o bin/Src/CMakeFiles/flow_gw.dir/tbuf.cpp.o
+build bin/Src/flow_gw: CXX_EXECUTABLE_LINKER__flow_gw_Debug bin/Src/CMakeFiles/flow_gw.dir/dma.cpp.o bin/Src/CMakeFiles/flow_gw.dir/dpdk_netif.cpp.o bin/Src/CMakeFiles/flow_gw.dir/main.cpp.o bin/Src/CMakeFiles/flow_gw.dir/netif_driver.cpp.o bin/Src/CMakeFiles/flow_gw.dir/socket_api.cpp.o bin/Src/CMakeFiles/flow_gw.dir/stack.cpp.o bin/Src/CMakeFiles/flow_gw.dir/tbuf.cpp.o
   FLAGS = -g
   OBJECT_DIR = bin/Src/CMakeFiles/flow_gw.dir
   POST_BUILD = :

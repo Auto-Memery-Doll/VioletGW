@@ -7,6 +7,7 @@
 #include "lwip/arch.h"
 #include "lwip/pbuf.h"
 #include "config.hpp"
+#include "lwip/timeouts.h"
 #include <cassert>
 #include <cstddef>
 #include <cstdint>
@@ -521,6 +522,13 @@ int DpdkNetif::run_send(void *arg) {
 //
 //
 // DpdkNetifManager
+
+DpdkNetifManager::~DpdkNetifManager() {
+    for (auto &entry : _netifs) {
+        delete entry.second;
+    }
+}
+
 void DpdkNetifManager::init() {
     std::unique_lock<util::SpinMutex> lock(_mtx);
 

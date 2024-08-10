@@ -1,6 +1,7 @@
 #ifndef FLOW_GATEWAY_CONFIG_HPP
 #define FLOW_GATEWAY_CONFIG_HPP
 
+#include "base/util.hpp"
 #include "dma.hpp"
 #include <cstdint>
 #include <rte_ether.h>
@@ -129,6 +130,32 @@ const int VDEV_rx_sleep = 10; // us
 
 /** 每个核心上运行的网卡的接收和发送线程的数量 */
 const int VDEV_core_max_rxtx = 2;
+
+/************************ LWIP netif configuration ******************/
+/** mtu */
+const int LWIP_max_mtu = 1500; // 固定不可改变
+
+/** 网关地址(192.168.225.1) */
+GW_ADDR(192, 168, 225, 1);
+
+/** 网卡的ip地址 */
+IP_ADDR(0, 192, 168, 225, 188); // ip0 = 192.168.225.188
+IP_ADDR(1, 192, 168, 225, 189); // ip1 = 192.168.225.189
+
+/** 挂在网卡在协议栈上的时候需要手动添加相应的代码 */
+#define LWIP_ADD_NETIF_IP_BETCH(index) \
+if (i == index) {   \
+    netif_ip = config::LWIP_ip_##index##_addr;  \
+    break;  \
+}
+
+#define LWIP_SET_UP_NETIF_IP \
+LWIP_ADD_NETIF_IP_BETCH(0)   \
+LWIP_ADD_NETIF_IP_BETCH(1)
+
+/** 网络掩码(225.225.225.0) */
+NETMASK_ADDR(225, 225, 225, 0); 
+
 
 }   // config
 }   // fg

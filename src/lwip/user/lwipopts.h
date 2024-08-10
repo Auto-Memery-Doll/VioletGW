@@ -37,7 +37,7 @@
 #else /* LWIP_OPTTEST_FILE */
 
 #define LWIP_IPV4                  1
-#define LWIP_IPV6                  1
+#define LWIP_IPV6                  0
 
 // 没有操作系统
 #define NO_SYS                     1
