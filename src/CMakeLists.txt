@@ -21,3 +21,4 @@ message("Sources: ${SOURCES}")
 
 # 添加可执行文件目标
 add_executable(flow_gw ${SOURCES})
+target_link_libraries(flow_gw base)

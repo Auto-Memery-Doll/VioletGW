@@ -6,5 +6,5 @@ CXX_DEFINES =
 
 CXX_INCLUDES = -I/home/xiugou/flow_gateway/src -I/home/xiugou/flow_gateway/src/lwip/include -I/home/xiugou/flow_gateway/src/lwip/user
 
-CXX_FLAGS = -g -w
+CXX_FLAGS = -g -w -mssse3
 

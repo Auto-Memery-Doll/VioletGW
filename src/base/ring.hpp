@@ -40,7 +40,7 @@ public:
         return _free_space;
     }
 
-private:
+    
     Ring(struct rte_ring* ring, unsigned int count) 
         :   _ring(ring)
         ,   _free_space(count)
@@ -52,7 +52,7 @@ private:
 };
 
 template<typename T>
-inline Ring<T>::ptr make_ring(const char* name, unsigned int count, unsigned int flag) {
+typename Ring<T>::ptr make_ring(const char* name, unsigned int count, unsigned int flag) {
     struct rte_ring *ring = rte_ring_create(name, count, rte_socket_id(), flag);
     if (ring == NULL) {
         rte_exit(EXIT_FAILURE, "rte_ring_create() failure.\n"

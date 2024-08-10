@@ -137,7 +137,7 @@ static  void PbufRef(pbuf *p) {
     }
 
     // 申请一个pbuf
-    pbuf *head_buf = GetPbufWithPayload(size, head_buf);
+    pbuf *head_buf = GetPbufWithPayload(size);
     ::memcpy(head_buf->payload, paylaod, size);
     head_buf->next = p;
 
@@ -165,7 +165,7 @@ size_t PbufPushBack(pbuf *p, void *payload, size_t size) {
     }
 
     ::memcpy((char*)p->payload + iter->len, payload, copy_size);
-    pbuf *new_buf = GetPbufWithPayload(size - copy_size, false);    // is not head buf
+    pbuf *new_buf = GetPbufWithPayload(size - copy_size);    // is not head buf
     iter->next = new_buf;
     new_buf->tot_len = size - copy_size;
     iter->len = size - copy_size;

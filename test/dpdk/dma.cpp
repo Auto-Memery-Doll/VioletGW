@@ -31,3 +31,7 @@ void test() {
     #undef COPY_LEN
     #undef DMA_BURST_SZ
 }
+
+int main(int argc, const char** argv) {
+    return 0;
+}

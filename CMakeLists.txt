@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.10)
 
 project(flow_gateway)
 
-add_compile_options(-g -w)
+add_compile_options(-g -w -mssse3)
 
 set(BUILD_DIR bin) 
 

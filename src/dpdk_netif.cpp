@@ -7,7 +7,6 @@
 #include "lwip/arch.h"
 #include "lwip/pbuf.h"
 #include "config.hpp"
-#include "lwip/timeouts.h"
 #include <cassert>
 #include <cstddef>
 #include <cstdint>
@@ -41,8 +40,8 @@ struct rte_ether_addr DPDK_ether_addr[RTE_MAX_ETHPORTS];
 /** 网络端口配置 */
 static struct rte_eth_conf g_port_conf = {
     .rxmode = {
-        .max_lro_pkt_size = config::DPDK_port_rxmode_max_lro_size,
         .mq_mode = RTE_ETH_MQ_RX_RSS, /** 启用接收端拓展 */
+        .max_lro_pkt_size = config::DPDK_port_rxmode_max_lro_size,
     },
     /** 接收队列配置 */
     .rx_adv_conf = {

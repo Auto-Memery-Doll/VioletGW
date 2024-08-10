@@ -94,4 +94,19 @@ const struct ip4_addr LWIP_ip_##num##_addr = []() -> struct ip4_addr {   \
 }   // util
 }   // fg
 
+//
+//
+// 声明一个std::unique_lock<fg::util::SpinMutex>
+template<>
+void std::unique_lock<fg::util::SpinMutex>::lock();
+
+template<>
+std::unique_lock<fg::util::SpinMutex>::unique_lock(fg::util::SpinMutex& _mtx);
+
+template<>
+std::unique_lock<fg::util::SpinMutex>::~unique_lock();
+
+template<>
+void std::unique_lock<fg::util::SpinMutex>::unlock();
+
 #endif // !FLOW_GATEWAY_UTIL_HPP

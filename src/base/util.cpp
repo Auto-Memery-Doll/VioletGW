@@ -1,6 +1,8 @@
 #include "util.hpp"
 #include <cstdio>
 #include <cstring>
+#include <generic/rte_spinlock.h>
+#include <mutex>
 #include <string>
 
 namespace fg {
@@ -34,5 +36,42 @@ char * lwip_name(char format[], int port) {
     return format;
 }
 
+//
+//
+// SpinMutex
+void SpinMutex::lock() {
+    rte_spinlock_lock(&_mtx);
+}
+
+void SpinMutex::unlock() {
+    rte_spinlock_unlock(&_mtx);
+}
+
 }   // util
 }   // fg
+
+//
+//
+// 特化以下std::unique_lock<fg::util::SpinMutex>
+template<>
+void std::unique_lock<fg::util::SpinMutex>::lock() {
+    this->_M_device->lock();
+}
+
+template<>
+std::unique_lock<fg::util::SpinMutex>::unique_lock(fg::util::SpinMutex& _mtx) 
+:   _M_device(&_mtx)
+,   _M_owns(false)
+{
+    _M_device->lock();
+}
+
+template<>
+std::unique_lock<fg::util::SpinMutex>::~unique_lock() {
+    this->_M_device->unlock();
+}
+
+template<>
+void std::unique_lock<fg::util::SpinMutex>::unlock() {
+    this->_M_device->lock();
+}

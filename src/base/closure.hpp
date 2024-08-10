@@ -22,7 +22,7 @@ class ClosureQueue : public Singletion<ClosureQueue> {
 public:
     using ptr = std::shared_ptr<ClosureQueue>;
 
-    ~ClosureQueue();
+    ~ClosureQueue() = default;
     DISABLE_MOVE(ClosureQueue);
 
     bool commit(Closure* closure);

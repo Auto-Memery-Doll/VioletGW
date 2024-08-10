@@ -11,21 +11,21 @@
 namespace fg {
 
 // 对pbuf的封装
-pbuf* GetEmptyPbuf();
-void SetEmptyPbuf(pbuf *pbuf_, void *payload, u16_t tot_len, u16_t len, void *done);
-pbuf* GetPbufWithPayload(u16_t length, bool is_head);
-void PbufFree(pbuf *p);
-u16_t PbufLen(pbuf *q);
-size_t UserPbufLen(pbuf *p);
-pbuf* PbufClone(pbuf *p);
-size_t PbufPopFront(pbuf *p, size_t size);
-size_t PbufPopBack(pbuf *p, size_t size);
-pbuf* PbufPushFront(pbuf *p, void *paylaod, size_t size, pbuf_type type);
-size_t PbufPushBack(pbuf *p, void *payload, size_t size);
-void PbufAppend(pbuf *to, pbuf *from);
-pbuf* PbufInsertString(pbuf *p, const std::string& str, int32_t offset = -1);
-pbuf* PbufInsertCstr(pbuf *p, const char* cstr, size_t len, int32_t offset = -1);
-pbuf* PbufFixChar(pbuf *p, const char c, int32_t offset = -1);
+extern pbuf* GetEmptyPbuf();
+extern void SetEmptyPbuf(pbuf *pbuf_, void *payload, u16_t tot_len, u16_t len, void *done);
+extern pbuf* GetPbufWithPayload(u16_t length);
+extern void PbufFree(pbuf *p);
+extern u16_t PbufLen(pbuf *q);
+extern size_t UserPbufLen(pbuf *p);
+extern pbuf* PbufClone(pbuf *p);
+extern size_t PbufPopFront(pbuf *p, size_t size);
+extern size_t PbufPopBack(pbuf *p, size_t size);
+extern pbuf* PbufPushFront(pbuf *p, void *paylaod, size_t size, pbuf_type type);
+extern size_t PbufPushBack(pbuf *p, void *payload, size_t size);
+extern void PbufAppend(pbuf *to, pbuf *from);
+extern pbuf* PbufInsertString(pbuf *p, const std::string& str, int32_t offset = -1);
+extern pbuf* PbufInsertCstr(pbuf *p, const char* cstr, size_t len, int32_t offset = -1);
+extern pbuf* PbufFixChar(pbuf *p, const char c, int32_t offset = -1);
 
 namespace base {
 

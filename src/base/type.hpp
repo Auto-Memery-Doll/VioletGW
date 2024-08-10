@@ -5,10 +5,13 @@
 #include "lwip/netif.h"
 #include "lwip/pbuf.h"
 #include <condition_variable>
-#include <generic/rte_spinlock.h>
 #include <mutex>
-#include <rte_ether.h>
 #include <thread>
+
+extern "C" {
+#include <generic/rte_spinlock.h>
+#include <rte_ether.h>
+}
 
 namespace fg {
 

@@ -194,6 +194,19 @@ helloword/fast:
 	$(MAKE) $(MAKESILENT) -f bin/Test/dpdk/CMakeFiles/helloword.dir/build.make bin/Test/dpdk/CMakeFiles/helloword.dir/build
 .PHONY : helloword/fast
 
+#=============================================================================
+# Target rules for targets named dma
+
+# Build rule for target.
+dma: cmake_check_build_system
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 dma
+.PHONY : dma
+
+# fast build rule for target.
+dma/fast:
+	$(MAKE) $(MAKESILENT) -f bin/Test/dpdk/CMakeFiles/dma.dir/build.make bin/Test/dpdk/CMakeFiles/dma.dir/build
+.PHONY : dma/fast
+
 # Help Target
 help:
 	@echo "The following are some of the valid targets for this Makefile:"
@@ -204,6 +217,7 @@ help:
 	@echo "... rebuild_cache"
 	@echo "... clear"
 	@echo "... base"
+	@echo "... dma"
 	@echo "... flow_gw"
 	@echo "... helloword"
 	@echo "... lwip"
