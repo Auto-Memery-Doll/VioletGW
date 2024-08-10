@@ -14,14 +14,9 @@ void dosome(MyClass obj) {
 
 int main(int argc, const char** argv) {
  
-    MyClass obj;
-    obj.x = 2;
-
-    auto i = std::ref(obj);
-    auto j = i.get();
-    std::thread t(&dosome, std::ref(obj));
-    t.join();
-
-    std::cout << obj.x << std::endl;
+    std::cout << "EIO: " << EIO << std::endl;
+    std::cout << "ENODEV: " << ENODEV << std::endl;
+    std::cout << "EINVAL: " << EINVAL << std::endl;
+    std::cout << "ENOMEM: " << ENOMEM << std::endl; 
     return 0;
 }

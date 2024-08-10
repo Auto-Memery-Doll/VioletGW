@@ -12,6 +12,7 @@
 #include "config.hpp"
 #include "lwip/pbuf.h"
 #include "netif/ethernet.h"
+#include <atomic>
 #include <cassert>
 #include <cstddef>
 #include <cstdint>
@@ -20,6 +21,7 @@
 #include <memory>
 #include <mutex>
 #include <rte_ether.h>
+#include <thread>
 
 namespace fg {
 /** 端口对应的mac地址，用来初始化lwip的抽象网卡接口 */
@@ -42,7 +44,7 @@ public:
         }
     }
     
-    void inti() {
+    void init() {
         /** 查看配置，使用了哪些端口 */
         uint32_t port_mask = config::DPDK_vaild_port_marks;
 
@@ -133,13 +135,40 @@ private:
     std::map<int, LwipNetif*> _netifs;
 };
 
-inline static auto lwip_netif_mgr() -> LwipNetifManager::ptr {
+inline auto lwip_netif_mgr() -> LwipNetifManager::ptr {
     return LwipNetifManager::GetInstance();
+}
+
+void lwip_netif_init() {
+    lwip_netif_mgr()->init();
 }
 
 //
 //
 // NetifDriver
+
+void NetifDriver::init() {
+    _stop.store(false, std::memory_order_relaxed);
+    _worker = std::thread(NetifDriver::run, this);
+}
+
+void NetifDriver::join() {
+    _stop.store(true, std::memory_order_relaxed);
+    _worker.join();
+}
+
+void NetifDriver::run(void* arg) {
+    NetifDriver *driver = (NetifDriver*)arg;
+
+    while (!driver->_stop.load(std::memory_order_relaxed)) {
+        for (int i = 0; i < 32; ++ i) {
+            if (!(config::DPDK_vaild_port_marks & (i << i))) 
+                continue;
+            driver->input(i);
+        } 
+    }
+}
+
 void NetifDriver::input(int port) {
     /** lwip层的虚拟网卡 */
     lwip_netif_t v_netif = lwip_netif_mgr()->get_netif(port);
@@ -172,4 +201,6 @@ void NetifDriver::input(int port) {
         }
     }
 }
+
+
 }   // fg

@@ -33,24 +33,24 @@ namespace dpdk {
 
 /** 全局内存池 */
 struct rte_mempool *DPDK_mempool;
-static struct rte_mempool *LWIP_mempool;
+
 /** 每个端口对应的mac地址（只使用ipv4，ipv6是没有mac地址的） */
 struct rte_ether_addr DPDK_ether_addr[RTE_MAX_ETHPORTS];
 
 /** 网络端口配置 */
 static struct rte_eth_conf g_port_conf = {
     .rxmode = {
-        .mq_mode = RTE_ETH_MQ_RX_RSS, /** 启用接收端拓展 */
+  //      .mq_mode = RTE_ETH_MQ_RX_RSS, /** 启用接收端拓展 */
         .max_lro_pkt_size = config::DPDK_port_rxmode_max_lro_size,
     },
     /** 接收队列配置 */
-    .rx_adv_conf = {
-        /**接收端拓展配置 */
-        .rss_conf = {
-            .rss_key = NULL,/**使用默认的散列键进行队列之间的负载均衡 */
-            .rss_hf = RTE_ETH_RSS_PROTO_MASK,/**所支持的协议的类型 */
-        },
-    },
+  //  .rx_adv_conf = {
+  //      /**接收端拓展配置 */
+  //      .rss_conf = {
+  //          .rss_key = NULL,/**使用默认的散列键进行队列之间的负载均衡 */
+  //          .rss_hf = RTE_ETH_RSS_PROTO_MASK,/**所支持的协议的类型 */
+  //      },
+  //  },
     /** 发送队列配置 */
     .tx_adv_conf = {
 
@@ -58,7 +58,7 @@ static struct rte_eth_conf g_port_conf = {
 };
 
 /** 获取配置信息中每个端口的接收队列和发送队列的数量 */
-static uint16_t g_nb_rx_desc = config::DPDK_rx_queue_num; 
+static uint16_t g_nb_rx_desc = config::DPDK_nb_rx_queue_desc; 
 static uint16_t g_nb_tx_desc = config::DPDK_nb_tx_queue_desc;
 
 /** 计算网络设备的数据包头部开销长度 */
@@ -100,15 +100,17 @@ config_port_max_pkt_len(struct rte_eth_conf *conf,
 
 /** 初始化|port|的发送队列 */
 static void init_rx_queue(int port, int queue_id, struct rte_eth_rxconf* rxq_conf) {
-    if (rte_eth_rx_queue_setup(
+    int ret;
+    if ((ret = rte_eth_rx_queue_setup(
             port, queue_id, 
             config::DPDK_nb_tx_queue_desc, 
             rte_eth_dev_socket_id(port), 
             rxq_conf,
-            DPDK_mempool) < 0) {
+            DPDK_mempool)) < 0) {
 
-            rte_exit(EXIT_FAILURE, "Could not setup RX queue{port: %d queue: %d}.\n",
-                port, queue_id);
+            rte_exit(EXIT_FAILURE, "Could not setup RX queue{port: %d queue: %d}.\n"
+                "what():%s\n",
+                port, queue_id, rte_strerror(ret));
     }
 }
 
@@ -126,13 +128,13 @@ static void init_tx_queue(int port, int queue_id, struct rte_eth_txconf *txq_con
 }
 
 inline static void init_multi_tx_queue(int port, struct rte_eth_txconf *txq_conf) {
-    for (int i = 0; i < g_nb_tx_desc; ++ i) {
+    for (int i = 0; i < config::DPDK_tx_queue_num; ++ i) {
         init_tx_queue(port, i, txq_conf);
     }
 }
 
 inline static void init_multi_rx_queue(int port, struct rte_eth_rxconf *rxq_conf) {
-    for (int i = 0; i < g_nb_rx_desc; ++ i) {
+    for (int i = 0; i < config::DPDK_rx_queue_num; ++ i) {
         init_rx_queue(port, i, rxq_conf);
     }
 }
@@ -165,20 +167,22 @@ static void port_init() {
             rte_exit(EXIT_FAILURE, "Cannot get device info: %s, port=%u\n",
                 rte_strerror(-ret), port_it);
         
+
+        struct rte_eth_conf l_port_conf = g_port_conf ;
         /** 计算出端口的数据包的最大负载 */
-        ret = config_port_max_pkt_len(&g_port_conf, &dev_info);
-        if (ret != 0) 
+        //ret = config_port_max_pkt_len(&l_port_conf, &dev_info);
+        if (ret < 0) 
             rte_exit(EXIT_FAILURE, 
                 "Invalid max frame size: %u (port %u)\n",
                 config::DPDK_max_frame_size, port_it);
 
         /** 配置端口 */
-        g_port_conf.rx_adv_conf.rss_conf.rss_hf &=
-            dev_info.flow_type_rss_offloads;
+        //l_port_conf.rx_adv_conf.rss_conf.rss_hf &=
+        //    dev_info.flow_type_rss_offloads;
         ret = rte_eth_dev_configure(port_it, 
             config::DPDK_rx_queue_num, 
             config::DPDK_tx_queue_num, 
-            &g_port_conf);
+            &l_port_conf);
         if (ret < 0) {
             rte_exit(EXIT_FAILURE, "Cannot configure device:"
                 " err=%d, port=%u\n", ret, port_it);
@@ -200,11 +204,11 @@ static void port_init() {
         /** 挂在发送队列和接收队列 */
         struct rte_eth_rxconf rxq_conf = dev_info.default_rxconf;
         rxq_conf.offloads = g_port_conf.rxmode.offloads;
-        init_multi_rx_queue(port_it, &rxq_conf);
-       
+        init_multi_rx_queue(port_it, /*&rxq_conf*/NULL);
+
         struct rte_eth_txconf txq_conf = dev_info.default_txconf;
         txq_conf.offloads = g_port_conf.txmode.offloads;
-        init_multi_tx_queue(port_it, &txq_conf);
+        init_multi_tx_queue(port_it, /*&txq_conf*/NULL);
 
         /** 启动端口 */
         ret = rte_eth_dev_start(port_it);
@@ -255,7 +259,7 @@ check_link_status() {
  
 
 /** 初始化dpdk环境 */
-void init(int argc, char *argv[]) {
+void init(int argc, char **argv) {
 
     if (rte_eal_init(argc, argv) < 0) {
         rte_exit(EXIT_FAILURE, 
@@ -275,18 +279,6 @@ void init(int argc, char *argv[]) {
             "rte_pktmbuf_pool_create() failure(%s)\n", config::DPDK_mempool_name);
     }
     DPDK_mempool = temp;
-
-    temp = rte_pktmbuf_pool_create(
-        config::LWIP_mempool_name, 
-        config::LWIP_mempool_block_num, 
-        config::LWIP_mempool_cache_size, 
-        config::LWIP_mempool_private_size, 
-        config::LWIP_mempool_block_size, 
-        rte_socket_id());
-    if (temp == NULL) {
-        rte_exit(EXIT_FAILURE, 
-            "rte_pktmbuf_pool_create() failure(%s)\n", config::LWIP_mempool_name);
-    }
 
     /** 初始化使用的端口 */
     port_init();
@@ -323,9 +315,7 @@ int tx_burst(uint16_t port_id,
 /** 向内存池内申请一个mbuf */
 // todo:
 rte_mbuf * get_mbuf(bool is_pbuf_to) {
-    struct rte_mbuf * buf_ = is_pbuf_to 
-                                ?   rte_pktmbuf_alloc(LWIP_mempool) 
-                                :   rte_pktmbuf_alloc(DPDK_mempool);
+    struct rte_mbuf * buf_ = rte_pktmbuf_alloc(DPDK_mempool);
     if (!buf_) {
         printf("there is no mbuf in g_mempool.\n");
         return nullptr;

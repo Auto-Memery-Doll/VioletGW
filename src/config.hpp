@@ -62,28 +62,22 @@ const uint32_t DMA_batch_sz = 64;
 /********************* DPDK base configuration ******************/
 /** dpdk 内存池的名字 */
 const char DPDK_mempool_name[] = "flow_gateway_dpdk_mempool";
-/** 用来给lwip pbuf进行转换的mempool */
-const char LWIP_mempool_name[] = "flow_gateway_dpdk_mempool";
 
 /** dpdk 全局内存池中的内存块的size */
 const unsigned DPDK_mempool_block_size = 1024;
-const unsigned LWIP_mempool_block_size = 0;/** 因为需要使用pbuf的负载 */
 
 /** dpdk 全局内存池的中的内存块的数量 */
 const uint16_t DPDK_mempool_block_num = RTE_MBUF_DEFAULT_BUF_SIZE;
-const uint16_t LWIP_mempool_block_num = RTE_MBUF_DEFAULT_BUF_SIZE;
 
 /** dpdk 内存池的cache的大小 */
 // 1.用于存储与数据包处理相关的缓存信息
 // 2.用于提高数据包处理的性能
 const unsigned DPDK_mempool_cache_size = 0;
-const unsigned LWIP_mempool_cache_size = 0;
 
 /** dpdk private区域的大小 */
 // 1.用于存储特定于数据包的私有数据
 // 2.可以进行定制化开发和使用
 const unsigned DPDK_mempool_private_size = 0;
-const unsigned LWIP_mempool_private_size = 0;
 
 /** LRO large receive offload 聚合包的最大大小 */
 // LRO是一种技术，它可以将多个小数据包合并成一个大数据包，以减少处理开销
@@ -96,7 +90,7 @@ const uint16_t DPDK_nb_rx_queue_desc = 128;
 const uint16_t DPDK_nb_tx_queue_desc = 128;
 
 /** DPDK使用端口的数量（默认为0x01） */
-const uint32_t DPDK_vaild_port_marks = 0x001;
+const uint32_t DPDK_vaild_port_marks = 0b0000'0000'0001;
 
 /** 接收队列和发送队列的配置是否使用默认的配置 */
 const bool DPDK_tx_config_default = true;

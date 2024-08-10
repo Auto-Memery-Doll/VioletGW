@@ -1,17 +1,14 @@
 #include "stack.hpp"
 #include "base/err.hpp"
 #include "lwip/arch.h"
-#include "lwip/err.h"
-#include "lwip/ip.h"
+#include "lwip/init.h"
 #include "lwip/ip_addr.h"
 #include "lwip/pbuf.h"
-#include "lwip/priv/tcp_priv.h"
-#include "lwip/prot/ieee.h"
 #include "lwip/tcp.h"
 #include "lwip/udp.h"
 
 namespace fg {
-
+namespace udp_tcp {
 /******** Udp ********/
 // 将lwip的raw api进行封装
 
@@ -202,4 +199,20 @@ static inline auto TcpAckRecv(struct tcp_pcb *tpcb, u16_t len) {
     return tcp_recved(tpcb, len);
 }
 
+}   // udp_tcp
+
+
+//
+//
+// stack
+ProtoStack::~ProtoStack() {}
+
+// todo:
+void ProtoStack::init(int fds) {
+    lwip_init();
+}
+
+
 }   // fg
+
+
