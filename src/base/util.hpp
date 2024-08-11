@@ -2,11 +2,16 @@
 #define FLOW_GATEWAY_UTIL_HPP
 
 #include "base/noncopyable.hpp"
+#include "base/singleton.hpp"
 #include "base/type.hpp"
 #include "lwip/ip4_addr.h"
+#include <atomic>
 #include <chrono>
+#include <iostream>
 #include <mutex>
+#include <random>
 #include <rte_ether.h>
+#include <shared_mutex>
 #include <string>
 namespace fg {
 namespace util {
@@ -82,6 +87,78 @@ const struct ip4_addr LWIP_ip_##num##_addr = []() -> struct ip4_addr {   \
     return ip_addr;                                                 \
 }()
 
+//
+//
+// 原子读写锁
+class AtomicRWLock : public base::noncopyable {
+public:
+
+    AtomicRWLock();
+    ~AtomicRWLock() = default;
+    void r_lock();
+    void r_unlock();
+    void w_lock();
+    void w_unlock();
+private:
+    std::mutex _mutex;  /** 先用互斥量过渡以下 */
+
+    std::atomic_flag _mtx;  /** 锁 */
+    std::atomic<int> _r_cnt;  /** 读者的计数 */
+    std::atomic<bool> _writer;
+};
+
+//
+//
+// 随机数生成器
+class RandomGenerator : public base::Singletion<RandomGenerator> {
+    friend class base::Singletion<RandomGenerator>;
+public:
+    int random_int(int begin, int end) {
+        std::uniform_int_distribution<> dis(begin, end);
+        return dis(gen);
+    }
+
+private:
+    RandomGenerator() 
+    :   gen(rd())
+    {}
+
+private:
+    std::random_device rd;
+    std::mt19937 gen;
+};
+
+inline int  generate_random(int begin, int end) {
+    /** 默认是int类型 */
+    return RandomGenerator::GetInstance()->random_int(begin, end);
+}
+
+//
+//
+// 计时器
+class TestTimer {
+public:
+    TestTimer()
+    :   _begin(std::chrono::high_resolution_clock::now())
+    {}
+
+    void stop() {
+        _end = std::chrono::high_resolution_clock::now();
+    }
+
+    void beign() {
+        _begin = std::chrono::high_resolution_clock::now();
+    }
+
+    void time_inter() {
+        auto duration = std::chrono::duration_cast<std::chrono::seconds>(_end - _begin);
+        std::cout << "Time elapsed: " << duration.count() << " seconds." << std::endl;
+    }
+
+private:
+    std::chrono::time_point<std::chrono::high_resolution_clock> _begin, _end;
+};
+
 }   // util
 }   // fg
 
@@ -99,5 +176,36 @@ std::unique_lock<fg::util::SpinMutex>::~unique_lock();
 
 template<>
 void std::unique_lock<fg::util::SpinMutex>::unlock();
+
+//
+//
+// std::unique_lock的fg::util::AtomicRWLock特化
+template<>
+void std::unique_lock<fg::util::AtomicRWLock>::lock();
+
+template<>
+std::unique_lock<fg::util::AtomicRWLock>::unique_lock(fg::util::AtomicRWLock&);
+
+template<>
+std::unique_lock<fg::util::AtomicRWLock>::~unique_lock();
+
+template<>
+void std::unique_lock<fg::util::AtomicRWLock>::unlock();
+
+//
+//
+// std::shared_lock
+template<>
+void std::shared_lock<fg::util::AtomicRWLock>::lock();
+
+template<>
+void std::shared_lock<fg::util::AtomicRWLock>::unlock();
+
+template<>
+std::shared_lock<fg::util::AtomicRWLock>::shared_lock(fg::util::AtomicRWLock&);
+
+template<>
+std::shared_lock<fg::util::AtomicRWLock>::~shared_lock();
+
 
 #endif // !FLOW_GATEWAY_UTIL_HPP

@@ -46,6 +46,7 @@ if(NOT CMAKE_INSTALL_LOCAL_ONLY)
   # Include the install script for each subdirectory.
   include("/home/xiugou/flow_gateway/build/bin/Test/lwip/cmake_install.cmake")
   include("/home/xiugou/flow_gateway/build/bin/Test/dpdk/cmake_install.cmake")
+  include("/home/xiugou/flow_gateway/build/bin/Test/base/cmake_install.cmake")
 
 endif()
 

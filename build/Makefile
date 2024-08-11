@@ -207,6 +207,32 @@ dma/fast:
 	$(MAKE) $(MAKESILENT) -f bin/Test/dpdk/CMakeFiles/dma.dir/build.make bin/Test/dpdk/CMakeFiles/dma.dir/build
 .PHONY : dma/fast
 
+#=============================================================================
+# Target rules for targets named test_trie
+
+# Build rule for target.
+test_trie: cmake_check_build_system
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 test_trie
+.PHONY : test_trie
+
+# fast build rule for target.
+test_trie/fast:
+	$(MAKE) $(MAKESILENT) -f bin/Test/base/CMakeFiles/test_trie.dir/build.make bin/Test/base/CMakeFiles/test_trie.dir/build
+.PHONY : test_trie/fast
+
+#=============================================================================
+# Target rules for targets named test_multi_trie
+
+# Build rule for target.
+test_multi_trie: cmake_check_build_system
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 test_multi_trie
+.PHONY : test_multi_trie
+
+# fast build rule for target.
+test_multi_trie/fast:
+	$(MAKE) $(MAKESILENT) -f bin/Test/base/CMakeFiles/test_multi_trie.dir/build.make bin/Test/base/CMakeFiles/test_multi_trie.dir/build
+.PHONY : test_multi_trie/fast
+
 # Help Target
 help:
 	@echo "The following are some of the valid targets for this Makefile:"
@@ -222,6 +248,8 @@ help:
 	@echo "... helloword"
 	@echo "... lwip"
 	@echo "... test_lwip_1"
+	@echo "... test_multi_trie"
+	@echo "... test_trie"
 .PHONY : help
 
 

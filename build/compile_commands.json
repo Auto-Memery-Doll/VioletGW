@@ -481,6 +481,16 @@
 },
 {
   "directory": "/home/xiugou/flow_gateway/build",
+  "command": "/usr/bin/c++ -I/home/xiugou/flow_gateway/src -I/home/xiugou/flow_gateway/src/lwip/include -I/home/xiugou/flow_gateway/src/lwip/user -g -g -w -mssse3 -o bin/Src/bin/Base/CMakeFiles/base.dir/log.cpp.o -c /home/xiugou/flow_gateway/src/base/log.cpp",
+  "file": "/home/xiugou/flow_gateway/src/base/log.cpp"
+},
+{
+  "directory": "/home/xiugou/flow_gateway/build",
+  "command": "/usr/bin/c++ -I/home/xiugou/flow_gateway/src -I/home/xiugou/flow_gateway/src/lwip/include -I/home/xiugou/flow_gateway/src/lwip/user -g -g -w -mssse3 -o bin/Src/bin/Base/CMakeFiles/base.dir/obj_factory.cpp.o -c /home/xiugou/flow_gateway/src/base/obj_factory.cpp",
+  "file": "/home/xiugou/flow_gateway/src/base/obj_factory.cpp"
+},
+{
+  "directory": "/home/xiugou/flow_gateway/build",
   "command": "/usr/bin/c++ -I/home/xiugou/flow_gateway/src -I/home/xiugou/flow_gateway/src/lwip/include -I/home/xiugou/flow_gateway/src/lwip/user -g -g -w -mssse3 -o bin/Src/bin/Base/CMakeFiles/base.dir/util.cpp.o -c /home/xiugou/flow_gateway/src/base/util.cpp",
   "file": "/home/xiugou/flow_gateway/src/base/util.cpp"
 },
@@ -498,5 +508,15 @@
   "directory": "/home/xiugou/flow_gateway/build",
   "command": "/usr/bin/c++ -I/home/xiugou/flow_gateway/src -I/home/xiugou/flow_gateway/src/lwip/include -I/home/xiugou/flow_gateway/src/lwip/user -g -g -w -mssse3 -o bin/Test/dpdk/CMakeFiles/dma.dir/dma.cpp.o -c /home/xiugou/flow_gateway/test/dpdk/dma.cpp",
   "file": "/home/xiugou/flow_gateway/test/dpdk/dma.cpp"
+},
+{
+  "directory": "/home/xiugou/flow_gateway/build",
+  "command": "/usr/bin/c++ -I/home/xiugou/flow_gateway/src -I/home/xiugou/flow_gateway/src/lwip/include -I/home/xiugou/flow_gateway/src/lwip/user -g -g -w -mssse3 -o bin/Test/base/CMakeFiles/test_trie.dir/test_trie.cpp.o -c /home/xiugou/flow_gateway/test/base/test_trie.cpp",
+  "file": "/home/xiugou/flow_gateway/test/base/test_trie.cpp"
+},
+{
+  "directory": "/home/xiugou/flow_gateway/build",
+  "command": "/usr/bin/c++ -I/home/xiugou/flow_gateway/src -I/home/xiugou/flow_gateway/src/lwip/include -I/home/xiugou/flow_gateway/src/lwip/user -g -g -w -mssse3 -o bin/Test/base/CMakeFiles/test_multi_trie.dir/test_multi_trie.cpp.o -c /home/xiugou/flow_gateway/test/base/test_multi_trie.cpp",
+  "file": "/home/xiugou/flow_gateway/test/base/test_multi_trie.cpp"
 }
 ]
