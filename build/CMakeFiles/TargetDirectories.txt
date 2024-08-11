@@ -29,5 +29,6 @@
 /home/xiugou/flow_gateway/build/bin/Test/dpdk/CMakeFiles/rebuild_cache.dir
 /home/xiugou/flow_gateway/build/bin/Test/base/CMakeFiles/test_trie.dir
 /home/xiugou/flow_gateway/build/bin/Test/base/CMakeFiles/test_multi_trie.dir
+/home/xiugou/flow_gateway/build/bin/Test/base/CMakeFiles/test_log.dir
 /home/xiugou/flow_gateway/build/bin/Test/base/CMakeFiles/edit_cache.dir
 /home/xiugou/flow_gateway/build/bin/Test/base/CMakeFiles/rebuild_cache.dir

@@ -233,6 +233,19 @@ test_multi_trie/fast:
 	$(MAKE) $(MAKESILENT) -f bin/Test/base/CMakeFiles/test_multi_trie.dir/build.make bin/Test/base/CMakeFiles/test_multi_trie.dir/build
 .PHONY : test_multi_trie/fast
 
+#=============================================================================
+# Target rules for targets named test_log
+
+# Build rule for target.
+test_log: cmake_check_build_system
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 test_log
+.PHONY : test_log
+
+# fast build rule for target.
+test_log/fast:
+	$(MAKE) $(MAKESILENT) -f bin/Test/base/CMakeFiles/test_log.dir/build.make bin/Test/base/CMakeFiles/test_log.dir/build
+.PHONY : test_log/fast
+
 # Help Target
 help:
 	@echo "The following are some of the valid targets for this Makefile:"
@@ -247,6 +260,7 @@ help:
 	@echo "... flow_gw"
 	@echo "... helloword"
 	@echo "... lwip"
+	@echo "... test_log"
 	@echo "... test_lwip_1"
 	@echo "... test_multi_trie"
 	@echo "... test_trie"

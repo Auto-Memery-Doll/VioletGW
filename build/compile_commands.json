@@ -518,5 +518,10 @@
   "directory": "/home/xiugou/flow_gateway/build",
   "command": "/usr/bin/c++ -I/home/xiugou/flow_gateway/src -I/home/xiugou/flow_gateway/src/lwip/include -I/home/xiugou/flow_gateway/src/lwip/user -g -g -w -mssse3 -o bin/Test/base/CMakeFiles/test_multi_trie.dir/test_multi_trie.cpp.o -c /home/xiugou/flow_gateway/test/base/test_multi_trie.cpp",
   "file": "/home/xiugou/flow_gateway/test/base/test_multi_trie.cpp"
+},
+{
+  "directory": "/home/xiugou/flow_gateway/build",
+  "command": "/usr/bin/c++ -I/home/xiugou/flow_gateway/src -I/home/xiugou/flow_gateway/src/lwip/include -I/home/xiugou/flow_gateway/src/lwip/user -g -g -w -mssse3 -o bin/Test/base/CMakeFiles/test_log.dir/test_log.cpp.o -c /home/xiugou/flow_gateway/test/base/test_log.cpp",
+  "file": "/home/xiugou/flow_gateway/test/base/test_log.cpp"
 }
 ]

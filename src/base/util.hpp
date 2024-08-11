@@ -159,6 +159,31 @@ private:
     std::chrono::time_point<std::chrono::high_resolution_clock> _begin, _end;
 };
 
+//
+//
+// 日志库的代码生成器
+
+/** 生成日志类的各级日志输出器 */
+#define FG_LOG_TEMPLATE(level)     \
+class level {                \
+public: \
+    template<typename Param>    \
+    level& operator<<(Param&& p) {   \
+        std::cout << p;    \
+    }    \
+}
+
+/** 生成对应的工厂函数 */
+#define FG_LOG_FACTORY(type, level) \
+level& type##_logger_##level(const char *file, int line, const char* func)
+
+/** 输入日志的模板：[level] \n 文件名+行数 \n 函数名 \n 日志内容 */
+#define FG_LOG_FORMAT(level) _##level \
+    << file << ":" << line << "\n" \
+    << func;
+
+/** 日志输出的公用宏 */
+#define LOG(type, level)  fg::type##_logger::GetInstance()-> type##_logger_##level(__FILE__, __LINE__, __func__)
 }   // util
 }   // fg
 
