@@ -476,23 +476,23 @@
 },
 {
   "directory": "/home/xiugou/flow_gateway/build",
+  "command": "/usr/bin/c++ -I/home/xiugou/flow_gateway/src -I/home/xiugou/flow_gateway/src/lwip/include -I/home/xiugou/flow_gateway/src/lwip/user -g -g -w -mssse3 -o bin/Src/bin/Base/CMakeFiles/base.dir/file_writer.cpp.o -c /home/xiugou/flow_gateway/src/base/file_writer.cpp",
+  "file": "/home/xiugou/flow_gateway/src/base/file_writer.cpp"
+},
+{
+  "directory": "/home/xiugou/flow_gateway/build",
   "command": "/usr/bin/c++ -I/home/xiugou/flow_gateway/src -I/home/xiugou/flow_gateway/src/lwip/include -I/home/xiugou/flow_gateway/src/lwip/user -g -g -w -mssse3 -o bin/Src/bin/Base/CMakeFiles/base.dir/iobuf.cpp.o -c /home/xiugou/flow_gateway/src/base/iobuf.cpp",
   "file": "/home/xiugou/flow_gateway/src/base/iobuf.cpp"
 },
 {
   "directory": "/home/xiugou/flow_gateway/build",
-  "command": "/usr/bin/c++ -I/home/xiugou/flow_gateway/src -I/home/xiugou/flow_gateway/src/lwip/include -I/home/xiugou/flow_gateway/src/lwip/user -g -g -w -mssse3 -o bin/Src/bin/Base/CMakeFiles/base.dir/log.cpp.o -c /home/xiugou/flow_gateway/src/base/log.cpp",
-  "file": "/home/xiugou/flow_gateway/src/base/log.cpp"
-},
-{
-  "directory": "/home/xiugou/flow_gateway/build",
-  "command": "/usr/bin/c++ -I/home/xiugou/flow_gateway/src -I/home/xiugou/flow_gateway/src/lwip/include -I/home/xiugou/flow_gateway/src/lwip/user -g -g -w -mssse3 -o bin/Src/bin/Base/CMakeFiles/base.dir/obj_factory.cpp.o -c /home/xiugou/flow_gateway/src/base/obj_factory.cpp",
-  "file": "/home/xiugou/flow_gateway/src/base/obj_factory.cpp"
-},
-{
-  "directory": "/home/xiugou/flow_gateway/build",
   "command": "/usr/bin/c++ -I/home/xiugou/flow_gateway/src -I/home/xiugou/flow_gateway/src/lwip/include -I/home/xiugou/flow_gateway/src/lwip/user -g -g -w -mssse3 -o bin/Src/bin/Base/CMakeFiles/base.dir/util.cpp.o -c /home/xiugou/flow_gateway/src/base/util.cpp",
   "file": "/home/xiugou/flow_gateway/src/base/util.cpp"
+},
+{
+  "directory": "/home/xiugou/flow_gateway/build",
+  "command": "/usr/bin/c++ -I/home/xiugou/flow_gateway/src -I/home/xiugou/flow_gateway/src/lwip/include -I/home/xiugou/flow_gateway/src/lwip/user -g -g -w -mssse3 -o bin/Src/bin/Balance/CMakeFiles/balance.dir/load_balancer.cpp.o -c /home/xiugou/flow_gateway/src/balance/load_balancer.cpp",
+  "file": "/home/xiugou/flow_gateway/src/balance/load_balancer.cpp"
 },
 {
   "directory": "/home/xiugou/flow_gateway/build",
@@ -523,5 +523,10 @@
   "directory": "/home/xiugou/flow_gateway/build",
   "command": "/usr/bin/c++ -I/home/xiugou/flow_gateway/src -I/home/xiugou/flow_gateway/src/lwip/include -I/home/xiugou/flow_gateway/src/lwip/user -g -g -w -mssse3 -o bin/Test/base/CMakeFiles/test_log.dir/test_log.cpp.o -c /home/xiugou/flow_gateway/test/base/test_log.cpp",
   "file": "/home/xiugou/flow_gateway/test/base/test_log.cpp"
+},
+{
+  "directory": "/home/xiugou/flow_gateway/build",
+  "command": "/usr/bin/c++ -I/home/xiugou/flow_gateway/src -I/home/xiugou/flow_gateway/src/lwip/include -I/home/xiugou/flow_gateway/src/lwip/user -g -g -w -mssse3 -o bin/Test/base/CMakeFiles/test_log_1.dir/test_log_1.cpp.o -c /home/xiugou/flow_gateway/test/base/test_log_1.cpp",
+  "file": "/home/xiugou/flow_gateway/test/base/test_log_1.cpp"
 }
 ]

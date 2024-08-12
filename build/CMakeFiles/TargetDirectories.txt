@@ -10,6 +10,7 @@
 /home/xiugou/flow_gateway/build/bin/Src/bin/Base/CMakeFiles/base.dir
 /home/xiugou/flow_gateway/build/bin/Src/bin/Base/CMakeFiles/edit_cache.dir
 /home/xiugou/flow_gateway/build/bin/Src/bin/Base/CMakeFiles/rebuild_cache.dir
+/home/xiugou/flow_gateway/build/bin/Src/bin/Balance/CMakeFiles/balance.dir
 /home/xiugou/flow_gateway/build/bin/Src/bin/Balance/CMakeFiles/edit_cache.dir
 /home/xiugou/flow_gateway/build/bin/Src/bin/Balance/CMakeFiles/rebuild_cache.dir
 /home/xiugou/flow_gateway/build/bin/Src/bin/Cache/CMakeFiles/edit_cache.dir
@@ -30,5 +31,6 @@
 /home/xiugou/flow_gateway/build/bin/Test/base/CMakeFiles/test_trie.dir
 /home/xiugou/flow_gateway/build/bin/Test/base/CMakeFiles/test_multi_trie.dir
 /home/xiugou/flow_gateway/build/bin/Test/base/CMakeFiles/test_log.dir
+/home/xiugou/flow_gateway/build/bin/Test/base/CMakeFiles/test_log_1.dir
 /home/xiugou/flow_gateway/build/bin/Test/base/CMakeFiles/edit_cache.dir
 /home/xiugou/flow_gateway/build/bin/Test/base/CMakeFiles/rebuild_cache.dir
