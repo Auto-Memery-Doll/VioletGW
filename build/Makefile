@@ -169,6 +169,19 @@ base/fast:
 .PHONY : base/fast
 
 #=============================================================================
+# Target rules for targets named balance
+
+# Build rule for target.
+balance: cmake_check_build_system
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 balance
+.PHONY : balance
+
+# fast build rule for target.
+balance/fast:
+	$(MAKE) $(MAKESILENT) -f bin/Src/bin/Balance/CMakeFiles/balance.dir/build.make bin/Src/bin/Balance/CMakeFiles/balance.dir/build
+.PHONY : balance/fast
+
+#=============================================================================
 # Target rules for targets named test_lwip_1
 
 # Build rule for target.
@@ -259,6 +272,19 @@ test_log_1/fast:
 	$(MAKE) $(MAKESILENT) -f bin/Test/base/CMakeFiles/test_log_1.dir/build.make bin/Test/base/CMakeFiles/test_log_1.dir/build
 .PHONY : test_log_1/fast
 
+#=============================================================================
+# Target rules for targets named test_crc
+
+# Build rule for target.
+test_crc: cmake_check_build_system
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 test_crc
+.PHONY : test_crc
+
+# fast build rule for target.
+test_crc/fast:
+	$(MAKE) $(MAKESILENT) -f bin/Test/base/CMakeFiles/test_crc.dir/build.make bin/Test/base/CMakeFiles/test_crc.dir/build
+.PHONY : test_crc/fast
+
 # Help Target
 help:
 	@echo "The following are some of the valid targets for this Makefile:"
@@ -268,11 +294,13 @@ help:
 	@echo "... edit_cache"
 	@echo "... rebuild_cache"
 	@echo "... clear"
+	@echo "... balance"
 	@echo "... base"
 	@echo "... dma"
 	@echo "... flow_gw"
 	@echo "... helloword"
 	@echo "... lwip"
+	@echo "... test_crc"
 	@echo "... test_log"
 	@echo "... test_log_1"
 	@echo "... test_lwip_1"
