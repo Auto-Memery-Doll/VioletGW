@@ -70,11 +70,18 @@ file(GLOB_RECURSE SOURCES
 # 输出找到的源文件列表
 message(STATUS "Found sources: ${SOURCES}")
 
+# 寻找 Boost 库
+find_package(Boost REQUIRED filesystem system)
+
+# 添加包含目录
+include_directories(${Boost_INCLUDE_DIRS})
+
 # 创建静态库
 add_library(base ${SOURCES})
 target_link_libraries(base 
     lwip
-    ${DPDK_LDFLAGS_STATIC}) # 直接将dpdk连接到base库下
+    ${DPDK_LDFLAGS_STATIC}
+    ${Boost_LIBRARIES}) # 直接将dpdk连接到base库下
 
 #add_executable(${PROJECT_NAME}-shared ${SOURCES})
 #target_link_libraries(${PROJECT_NAME}-shared PRIVATE ${DPDK_LDFLAGS_SHARED})

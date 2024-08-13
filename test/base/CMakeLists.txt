@@ -6,3 +6,9 @@ target_link_libraries(test_multi_trie base)
 
 add_executable(test_log test_log.cpp)
 target_link_libraries(test_log base)
+
+add_executable(test_log_1 test_log_1.cpp)
+target_link_libraries(test_log_1 base)
+
+add_executable(test_crc test_crc.cpp)
+target_link_libraries(test_crc base)

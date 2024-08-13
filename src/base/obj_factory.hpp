@@ -13,30 +13,29 @@ class Factory : public Singletion<Factory<T>> {
     friend class Singletion<Factory<T>>;
 public:
     using ptr = std::shared_ptr<T>;
-    ~Factory() {
-
-    }
+    ~Factory() = default;
 
     /** 注册一个子类 */
     template<typename SubType>
-    void reg(const std::string& name) {
-        
+    void reg(const std::string& name, T&& value) {
+        _map[name] = value;
     }
 
-    void get(const std::string& name) {
-
+    T* get(const std::string& name) {
+        return _map[name];
     }
 
 private:
-    Factory() {
-        
-    }
+    Factory() = default;
 
 private: 
-
-    std::map<std::string, T> _obj_map;
+    std::map<std::string, T> _map;
 };
 
+template <typename T>
+inline auto factory() -> Factory<T>::ptr {
+    return Factory<T>::GetInstance();
+} 
 
 }   // base
 }   // fg

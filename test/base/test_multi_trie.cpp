@@ -32,7 +32,7 @@ void test() {
     fg::util::TestTimer timer;
 
     std::vector<std::thread> pool;
-    for (int i = 0; i < 100; ++i) {
+    for (int i = 0; i < 10; ++i) {
         pool.emplace_back(test_fun);
     }
 

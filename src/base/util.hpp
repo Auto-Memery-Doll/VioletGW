@@ -7,6 +7,7 @@
 #include "lwip/ip4_addr.h"
 #include <atomic>
 #include <chrono>
+#include <cstdint>
 #include <iostream>
 #include <mutex>
 #include <random>
@@ -21,6 +22,9 @@ void reg_signal(int signal);
 
 /// 将一个数变为字符串
 std::string itoa(int i);
+std::string ui32toa(uint32_t);
+std::string dtoa(double);
+std::string ui64toa(uint64_t);
 
 /// 根据port id创建vnetif的ring的名字
 inline std::string TX_RING_NAME(int port) {
@@ -164,14 +168,21 @@ private:
 // 日志库的代码生成器
 
 /** 生成日志类的各级日志输出器 */
-#define FG_LOG_TEMPLATE(level)     \
+#define FG_LOG_TEMPLATE(type, level) \
 class level {                \
 public: \
-    template<typename Param>    \
-    level& operator<<(Param&& p) {   \
-        std::cout << p;    \
-    }    \
+    FG_##type##_LOG_TEMPLATE(level)    \
+    FG_##type##_LOG_USER(level) \
 }
+
+
+/** 一次性生成所有的日志输出其 */
+#define FG_LOG_TEMPLATE_ALL(type) \
+    FG_LOG_TEMPLATE(type, info);  \
+    FG_LOG_TEMPLATE(type, debug); \
+    FG_LOG_TEMPLATE(type, warnning);  \
+    FG_LOG_TEMPLATE(type, error)
+
 
 /** 生成对应的工厂函数 */
 #define FG_LOG_FACTORY(type, level) \
@@ -180,7 +191,46 @@ level& type##_logger_##level(const char *file, int line, const char* func)
 /** 输入日志的模板：[level] \n 文件名+行数 \n 函数名 \n 日志内容 */
 #define FG_LOG_FORMAT(level) _##level \
     << file << ":" << line << "\n" \
-    << func;
+    << func << "\n";
+
+/** logger的成员属性 */
+#define FG_LOG_MEMBER   \
+private:    \
+    info _info; \
+    debug _debug;   \
+    warnning _warnning; \
+    error _error
+
+#define FG_LOG_CLASS(type) \
+class type##_logger : public base::Singletion<type##_logger> {    \
+    friend class base::Singletion<type##_logger>;  \
+public: \
+    FG_LOG_TEMPLATE_ALL(type);    \
+FG_LOG_MEMBER;  \
+public: 
+
+#define FG_LOG_CLASS_END(type, param) };
+
+//
+//
+// crc32哈希算法
+// cyclic redundanct check 32是一种广泛使用的循环冗余校验算法，它主要用于检测数据传输
+// 过程中可能发生的错误。CRC32生成一个32位的校验值，可以附加到数据末尾，在接收端重新计算
+// 并验证数据的完整性
+//
+// 1.多项式除法：
+//      发送方将数据视为一个二进制的多项式，使用该多项式去除以一个固定的生成多项式
+//      得到的余数就是CRC值
+// 2.位运算
+//      实际的CRC运算通常使用位运算来实现，包括XOR，移位等操作
+// 3.为了提高效率，CRC32通常使用预先计算好的查找标来进行快速计算
+uint32_t crc32(const std::string& data);
+
+
+//
+//
+// fnv哈希算法(直接使用boost库)
+uint32_t fnv(const std::string& data);
 
 /** 日志输出的公用宏 */
 #define LOG(type, level)  fg::type##_logger::GetInstance()-> type##_logger_##level(__FILE__, __LINE__, __func__)
