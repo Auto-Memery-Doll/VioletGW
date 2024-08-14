@@ -5,6 +5,7 @@
 #include "base/noncopyable.hpp"
 #include "base/type.hpp"
 #include <memory>
+#include <vector>
 
 namespace fg {
 
@@ -42,6 +43,15 @@ public:
     // 该节点被shutdown了，
     // 在节点被shutdown之后，网关以一个新的时间间隔来探测对端的是否重新运行
     virtual void check_nodes() = 0;
+
+    /** 调整当前集群的成员 */
+    virtual void set_cluster(const std::vector<balance::ip_t>& cluster) = 0;
+
+    /** 查看当前集群的成员 */
+    virtual std::vector<balance::ip_t> get_cluster() = 0;
+
+    virtual void add_node(const balance::ip_t& node) = 0;
+    virtual void remove_node(const balance::ip_t& node) = 0;
 
 private:
     int _retry_after_unvaild;
