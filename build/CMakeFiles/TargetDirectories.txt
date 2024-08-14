@@ -13,6 +13,7 @@
 /home/xiugou/flow_gateway/build/bin/Src/bin/Balance/CMakeFiles/balance.dir
 /home/xiugou/flow_gateway/build/bin/Src/bin/Balance/CMakeFiles/edit_cache.dir
 /home/xiugou/flow_gateway/build/bin/Src/bin/Balance/CMakeFiles/rebuild_cache.dir
+/home/xiugou/flow_gateway/build/bin/Src/bin/Cache/CMakeFiles/cache.dir
 /home/xiugou/flow_gateway/build/bin/Src/bin/Cache/CMakeFiles/edit_cache.dir
 /home/xiugou/flow_gateway/build/bin/Src/bin/Cache/CMakeFiles/rebuild_cache.dir
 /home/xiugou/flow_gateway/build/bin/Src/bin/Coroutine/CMakeFiles/edit_cache.dir

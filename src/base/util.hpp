@@ -211,6 +211,9 @@ public:
 
 #define FG_LOG_CLASS_END(type, param) };
 
+/** 日志输出的公用宏 */
+#define LOG(type, level)  fg::type##_logger::GetInstance()-> type##_logger_##level(__FILE__, __LINE__, __func__)
+
 //
 //
 // crc32哈希算法
@@ -232,8 +235,13 @@ uint32_t crc32(const std::string& data);
 // fnv哈希算法(直接使用boost库)
 uint32_t fnv(const std::string& data);
 
-/** 日志输出的公用宏 */
-#define LOG(type, level)  fg::type##_logger::GetInstance()-> type##_logger_##level(__FILE__, __LINE__, __func__)
+//
+//
+// 获取当前的时间
+inline fg_clock_t now() {
+    return std::chrono::high_resolution_clock::now();
+}
+
 }   // util
 }   // fg
 

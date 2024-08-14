@@ -182,6 +182,19 @@ balance/fast:
 .PHONY : balance/fast
 
 #=============================================================================
+# Target rules for targets named cache
+
+# Build rule for target.
+cache: cmake_check_build_system
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 cache
+.PHONY : cache
+
+# fast build rule for target.
+cache/fast:
+	$(MAKE) $(MAKESILENT) -f bin/Src/bin/Cache/CMakeFiles/cache.dir/build.make bin/Src/bin/Cache/CMakeFiles/cache.dir/build
+.PHONY : cache/fast
+
+#=============================================================================
 # Target rules for targets named test_lwip_1
 
 # Build rule for target.
@@ -296,6 +309,7 @@ help:
 	@echo "... clear"
 	@echo "... balance"
 	@echo "... base"
+	@echo "... cache"
 	@echo "... dma"
 	@echo "... flow_gw"
 	@echo "... helloword"

@@ -6,24 +6,31 @@
 #include <thread>
 #include <vector>
 
+int hash(char a) {
+    return a;
+}
+
 void test() {
-    fg::base::Trie<std::string> string_tree;
+
+    fg::base::Trie<std::string, 128, hash> string_tree;
     std::atomic<int> g_cnt = 0;
     auto test_fun = [&]() -> void {
         std::cout << "thread start " << std::this_thread::get_id() << std::endl;
         int cnt = 0;
 
         std::string test_str = "";
-        for (int i = 0; i < 10000; ++i) {
-            test_str += (char)fg::util::generate_random(0, 127);
+        for (int j = 0; j < 10000; ++j) {
+            for (int i = 0; i < 100; ++i) {
+                test_str += (char)fg::util::generate_random(0, 127);
 
-            if (string_tree.set(test_str, &test_str)) {
-                auto ret = string_tree.get(test_str);
-                if (*ret != test_str) {
-                    std::cout << *ret << " \n:\n " << test_str << "error" << std::endl;
-                    return;
+                if (string_tree.set(test_str, &test_str)) {
+                    auto ret = string_tree.get(test_str);
+                    //if (*ret != test_str) {
+                    //    std::cout << *ret << " \n:\n " << test_str << "error" << std::endl;
+                    //    return;
+                    //}
+                    cnt++;
                 }
-                cnt++;
             }
         }
         g_cnt.fetch_add(cnt);

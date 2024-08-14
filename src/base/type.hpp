@@ -4,7 +4,9 @@
 
 #include "lwip/netif.h"
 #include "lwip/pbuf.h"
+#include <chrono>
 #include <condition_variable>
+#include <cstdint>
 #include <mutex>
 #include <thread>
 
@@ -34,6 +36,13 @@ using timeval_us = uint32_t;
 using timeval_min = uint32_t;
 using timeval_h = uint32_t;
 
-}
+using fg_clock_t = std::chrono::time_point<std::chrono::high_resolution_clock>;
+using fg_duration_t = std::chrono::duration<uint32_t>;
+
+using fg_hash_fnv_t = uint32_t;
+using fg_hash_crc32_t = uint32_t;
+using fg_hash_std_t = uint32_t;
+
+}   // fg
 
 #endif // !FLOW_GATEWAY_TYPE_HPP

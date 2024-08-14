@@ -3,8 +3,13 @@
 #include <string>
 
 
+int hash(char a) {
+    return a;
+}
+
 void test() {
-    fg::base::Trie<std::string> string_tree;
+
+    fg::base::Trie<std::string, 128, hash> string_tree;
 
 
     while (true) {

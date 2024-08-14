@@ -5,4 +5,5 @@ file(GLOB SOURCES "*.cpp")
 message("Sources: ${SOURCES}")
 
 # 添加可执行文件目标
-#add_executable(flow_gw ${SOURCES})
+add_library(cache ${SOURCES})
+target_link_libraries(cache base)

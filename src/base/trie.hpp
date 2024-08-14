@@ -11,18 +11,21 @@ namespace fg {
 namespace base {
 
 /** COW的无锁字典树 */
-template <typename T>
+//
+// size_t 每一个节点字典的容量
+// func 根据字符计算出对应的索引
+template <typename T, size_t size, int(*func)(char)>
 class Trie : public noncopyable {
 public:
     Trie() {
-        for (int i = 0; i < 128; ++ i) {
-            child[i] = NULL;
+        for (int i = 0; i < size; ++ i) {
+            child[func(i)] = NULL;
         }
     };
     ~Trie() {
-        for (int i = 0; i < 128; ++ i) {
-            if (child[i])
-                clean(child[i]);
+        for (int i = 0; i < size; ++ i) {
+            if (child[func(i)])
+                clean(child[func(i)]);
         }
     }
 
@@ -43,19 +46,19 @@ public:
         node* _node = read(key, &index);
 
         if (_node == NULL) {
-            child[key[0]] = new node;
-            _node = child[key[0]];
+            child[func(key[0])] = new node;
+            _node = child[func(key[0])];
             index++;
         }
 
         if (index == key.size() && 
-            _node->childs[key[index]] && 
-            _node->childs[key[index]]->vaild) {
+            _node->childs[func(key[index])] && 
+            _node->childs[func(key[index])]->vaild) {
             return false;
         }
 
         node *clone_node;
-        if (_node->childs[key[index]])
+        if (_node->childs[func(key[index])])
             clone_node = _node->childs[key[index]];
         else 
             clone_node = _node, index--/** 需要从上一个所以开始构建 */;
@@ -84,19 +87,19 @@ public:
         node* _node = read(key, &index);
 
         if (_node == NULL) {
-            child[key[0]] = new node;
-            _node = child[key[0]];
+            child[func(key[0])] = new node;
+            _node = child[func(key[0])];
         }
 
         if (index == key.size() && 
-            _node->childs[key[index]] && 
-            _node->childs[key[index]]->valid) {
+            _node->childs[func(key[index])] && 
+            _node->childs[func(key[index])]->valid) {
             return false;
         }
 
         node *clone_node;
-        if (_node->childs[key[index]])
-            clone_node = _node->childs[key[index]];
+        if (_node->childs[func(key[index])])
+            clone_node = _node->childs[func(key[index])];
         else 
             clone_node = const_cast<node*>(_node), index--/** 需要从上一个所以开始构建 */;
 
@@ -110,8 +113,8 @@ private:
     struct node {
         /** 生成一个节点副本 */
         node() {
-            for (int i = 0; i < 128; ++ i) {
-                childs[i] = NULL;
+            for (int i = 0; i < size; ++ i) {
+                childs[func(i)] = NULL;
             }
             prev = NULL;
             obj = NULL;
@@ -119,8 +122,8 @@ private:
         }
         node* clone() const {
             node* _copy = new node;
-            for (int i = 0; i < 128; ++ i) {
-                _copy->childs[i] = this->childs[i];
+            for (int i = 0; i < size; ++ i) {
+                _copy->childs[func(i)] = this->childs[func(i)];
             }
             _copy->vaild = this->vaild;
             _copy->obj = this->obj;
@@ -130,7 +133,7 @@ private:
         T *obj;
         bool vaild;
         node* prev; 
-        node* childs[128];
+        node* childs[size];
     };
     using node_iter_t = node*;
 
@@ -147,9 +150,9 @@ private:
     };
 
     void clean(node* clean_node) {
-        for (int i = 0; i < 128; ++ i) {
-            if (clean_node->childs[i]) {
-                clean(clean_node->childs[i]);
+        for (int i = 0; i < size; ++ i) {
+            if (clean_node->childs[func(i)]) {
+                clean(clean_node->childs[func(i)]);
             }
         }
         if (clean_node->vaild) {
@@ -166,7 +169,7 @@ private:
             
             node* new_node = new node;
             new_node->prev = it;
-            it->childs[key[index]] = new_node;
+            it->childs[func(key[index])] = new_node;
 
             it = new_node;
         }
@@ -184,9 +187,9 @@ private:
         if (!iter)  goto null;
         idx++;
         for (; iter && idx < key.size(); ++ idx) {
-            if (iter->childs[key[idx]] == NULL) 
+            if (iter->childs[func(key[idx])] == NULL) 
                 break;
-            iter = iter->childs[key[idx]];
+            iter = iter->childs[func(key[idx])];
         }
 null:
         *index = idx;
@@ -199,9 +202,9 @@ null:
 
     void updata(node* _node, node* raw_node, char idx) {
 
-        for (int i = 0; i < 128; ++ i) {
-            if (_node->childs[i]) {
-                _node->childs[i]->prev = _node;
+        for (int i = 0; i < size; ++ i) {
+            if (_node->childs[func(i)]) {
+                _node->childs[func(i)]->prev = _node;
             }
         }
 
@@ -223,7 +226,7 @@ null:
 
 private:
     util::AtomicRWLock _mtx;
-    node *child[128];
+    node *child[size];
 };
 
 

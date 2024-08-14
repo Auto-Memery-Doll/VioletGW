@@ -236,6 +236,9 @@ boost_headers_DIR:PATH=/usr/lib/x86_64-linux-gnu/cmake/boost_headers-1.74.0
 //The directory containing a CMake configuration file for boost_system.
 boost_system_DIR:PATH=/usr/lib/x86_64-linux-gnu/cmake/boost_system-1.74.0
 
+//Dependencies for the target
+cache_LIB_DEPENDS:STATIC=general;base;
+
 //Value Computed by CMake
 flow_gateway_BINARY_DIR:STATIC=/home/xiugou/flow_gateway/build
 
