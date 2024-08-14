@@ -68,6 +68,8 @@ public:
     virtual void set(const std::vector<ip_t>& elts) = 0;
     /** 根据id获取对应的节点 */
     virtual GetRet get(const ip_t& id) = 0;
+    /** 获取集群的节点信息 */
+    virtual std::vector<ip_t> get_cluster() = 0;
 };
 
 }   // balance

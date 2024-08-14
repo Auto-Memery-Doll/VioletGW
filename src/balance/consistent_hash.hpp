@@ -1,17 +1,21 @@
 #ifndef FLOW_GATEWAY_CONSISTENT_HASH_HPP
 #define FLOW_GATEWAY_CONSISTENT_HASH_HPP
 
+#include "base/singleton.hpp"
 #include "balance/base_balance.hpp"
 #include <cstdint>
 #include <map>
+#include <memory>
 #include <shared_mutex>
 #include <string>
 #include <vector>
 namespace fg {
 namespace balance {
 
-class ConsistentHash : public BaseBalance {
+class ConsistentHash : public BaseBalance, public base::Singletion<ConsistentHash> {
+    friend class base::Singletion<ConsistentHash>;
 public:
+    using ptr = std::shared_ptr<ConsistentHash>;
     ConsistentHash() = default;
     ~ConsistentHash() = default;
 
@@ -20,6 +24,7 @@ public:
     void remove(const ip_t& elt) override;
     void set(const std::vector<ip_t>& elts) override;
     GetRet get(const ip_t& name) override;
+    std::vector<ip_t> get_cluster() override;
 
     /** 初始化参数结构 */
     struct InitArg {
@@ -65,6 +70,10 @@ private:
 
     std::shared_mutex _mtx;
 };
+
+inline auto switch_to_consistent_hash() {
+    return ConsistentHash::GetInstance();
+}
 
 }   // balance
 }   // fg

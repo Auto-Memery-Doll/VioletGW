@@ -120,5 +120,13 @@ GetRet RoundRobin::get(const ip_t& name) {
     return {};
 }
 
+std::vector<ip_t> RoundRobin::get_cluster() {
+    std::vector<ip_t> cluster_info;
+    for (auto& entry : _nodes) {
+        cluster_info.push_back(entry.ip);
+    }
+    return cluster_info;
+}
+
 }   // balance
 }   // fg

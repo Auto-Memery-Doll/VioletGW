@@ -28,6 +28,12 @@ using spinlock_t = rte_spinlock_t;
 //using LwipNetif = struct netif;
 using lwip_netif_t = struct netif*;
 
+using timeval_s = uint32_t;
+using timeval_ms = uint32_t;
+using timeval_us = uint32_t;
+using timeval_min = uint32_t;
+using timeval_h = uint32_t;
+
 }
 
 #endif // !FLOW_GATEWAY_TYPE_HPP

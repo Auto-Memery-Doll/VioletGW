@@ -137,6 +137,13 @@ std::string ConsistentHash::elt_key(const ip_t& key, int idx) {
     return util::itoa(idx) + key;
 }
 
+std::vector<ip_t> ConsistentHash::get_cluster() {
+    std::vector<ip_t> cluster_info;
+    for (auto &entry : _members) {
+        cluster_info.push_back(entry.first);
+    }
+    return cluster_info;
+}
 
 }   // balance
 }   // fg

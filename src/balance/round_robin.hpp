@@ -1,16 +1,20 @@
 #ifndef FLOW_GATEWAY_ROUND_ROBIN_HPP
 #define FLOW_GATEWAY_ROUND_ROBIN_HPP
 
-
+#include "base/singleton.hpp"
 #include "balance/base_balance.hpp"
+#include <memory>
 #include <set>
 #include <shared_mutex>
 #include <vector>
 namespace fg {
 namespace balance {
 
-class RoundRobin : public BaseBalance {
+class RoundRobin : public BaseBalance, public base::Singletion<RoundRobin> {
+    friend class base::Singletion<RoundRobin>;
 public:
+    using ptr = std::shared_ptr<RoundRobin>;
+
     struct Mapping {
         ip_t ip;
         int weight;
@@ -35,6 +39,7 @@ public:
     void set(const std::vector<ip_t>& elts) override;
     // 获取通过算法选出一个节点
     GetRet get(const ip_t& name[[maybe_unused]]) override;
+    std::vector<ip_t> get_cluster() override;
 
     // 如果weights.empty() == true 则默认为直接轮询
     struct InitArg {
@@ -52,6 +57,10 @@ private:
     NodeAndWeights _nodes;   /** 节点列表 */
     std::vector<Mapping> _cur_req;   /** 当前周期内节点接收请求的次数 */
 };
+
+inline auto switch_to_round_robin() -> RoundRobin::ptr {
+    return RoundRobin::GetInstance();
+}
 
 }   // balance
 }   // fg
