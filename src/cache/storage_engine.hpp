@@ -5,9 +5,10 @@
 #include "base/singleton.hpp"
 #include "base/util.hpp"
 #include "base/log.hpp"
-#include "cache/lru-2.hpp"
 #include <cstddef>
+#include <cstdio>
 #include <string>
+#include <sys/types.h>
 
 namespace fg {
 namespace cache {
@@ -18,24 +19,34 @@ namespace cache {
 class StorageEngine : public base::Singletion<StorageEngine> {
     friend class base::Singletion<StorageEngine>;
 public:
-
     using ptr = std::shared_ptr<StorageEngine>;
 
     /** 根据|path|创建一个文件以及对应的文件路径上的目录 */
+    // 路径上的目录必须存在
     int create_file(const std::string& path);
 
     /** 创建|path|上设计到的所有目录 */
-    int create_dir(const std::string& path);
+    // 路径上的所有名称都被视为将要创建的目录
+    bool create_dir(const std::string& path);
 
     /** 移除操作 */
-    int remove_file(const std::string& path);
-    int remove_dir(const std::string& path);
-    int remove_dir_all(const std::string& path);
+    // 移除一个文件
+    bool remove_file(const std::string& path);
+    // 移除一个空目录
+    bool remove_dir(const std::string& path);
+    // 递归移除一个目录
+    bool remove_dir_all(const std::string& path);
+
+    /** 打开文件 */
+    int open(const std::string& path);
+
+    /** 关闭 */
+    int close(int fd);
 
     /** 文件io操作 */
     /** 将指定路径的下的文件中的内容读取到|buffer|中，并返回一个CacheBlock */
-    size_t read(int fd, base::IOBuf* iobuf);
-    size_t read(const std::string& path, base::IOBuf* buf);
+    size_t read(int fd, off_t offset, base::IOBuf* iobuf, size_t size);
+    size_t read(const std::string& path, off_t offset, base::IOBuf* buf, size_t size);
 
     /** 将iobuf中的内容写入 将指定路径下的文件 */
     size_t write(int fd, base::IOBuf* iobuf);
@@ -54,22 +65,6 @@ public:
             LOG(consule, warnning) << "iobuf output file failure\n";
         }
     }
-
-private:
-    /** 打开一个文件并返回相应的文件描述符，同时进行lru-2算法 */
-    // 防止打开过多的文件
-    int open(const std::string& path);
-
-    /** 关闭一个文件，如果该文件在文件池内，将其从池中移除 */
-    int close(int fd);
-
-    /** 如果热点数据过多，可以适当的扩充，动态适应 */
-    static void adjust(size_t size);
-
-    using StorageLRU = class LRU2<10, 50, 100>;
-    friend StorageLRU;
-private:
-    StorageLRU _fd_manager;   /** 管理打开的文件描述符 */
 };
 
 inline auto storage_engine() -> StorageEngine::ptr {
