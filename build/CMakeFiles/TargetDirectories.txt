@@ -36,3 +36,6 @@
 /home/xiugou/flow_gateway/build/bin/Test/base/CMakeFiles/test_crc.dir
 /home/xiugou/flow_gateway/build/bin/Test/base/CMakeFiles/edit_cache.dir
 /home/xiugou/flow_gateway/build/bin/Test/base/CMakeFiles/rebuild_cache.dir
+/home/xiugou/flow_gateway/build/bin/Test/cache/CMakeFiles/test_lru-2.dir
+/home/xiugou/flow_gateway/build/bin/Test/cache/CMakeFiles/edit_cache.dir
+/home/xiugou/flow_gateway/build/bin/Test/cache/CMakeFiles/rebuild_cache.dir

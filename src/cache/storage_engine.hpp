@@ -3,10 +3,11 @@
 
 #include "base/iobuf.hpp"
 #include "base/singleton.hpp"
+#include "base/util.hpp"
+#include "base/log.hpp"
 #include "cache/lru-2.hpp"
 #include <cstddef>
 #include <string>
-#include <vector>
 
 namespace fg {
 namespace cache {
@@ -17,6 +18,7 @@ namespace cache {
 class StorageEngine : public base::Singletion<StorageEngine> {
     friend class base::Singletion<StorageEngine>;
 public:
+
     using ptr = std::shared_ptr<StorageEngine>;
 
     /** 根据|path|创建一个文件以及对应的文件路径上的目录 */
@@ -43,7 +45,14 @@ public:
     template<typename T, base::IOBuf(*save)(T*)>
     void save_structure(const std::string& path, T* t) {
         base::IOBuf iobuf = save(t);
-        
+        int fd = create_file(path);
+        if (fd != -1) {
+            LOG(consule, error) << "save structure failure\n";
+            return;
+        }
+        if (iobuf.size() == iobuf.output_file(fd, 0)) {
+            LOG(consule, warnning) << "iobuf output file failure\n";
+        }
     }
 
 private:
@@ -57,10 +66,10 @@ private:
     /** 如果热点数据过多，可以适当的扩充，动态适应 */
     static void adjust(size_t size);
 
-    friend class LRU2<StorageEngine::adjust>;
+    using StorageLRU = class LRU2<10, 50, 100>;
+    friend StorageLRU;
 private:
-    std::vector<int> _fds; /** 记录已经打开的文件描述符 */
-    LRU2<StorageEngine::adjust> _fd_manager;   /** 管理打开的文件描述符 */
+    StorageLRU _fd_manager;   /** 管理打开的文件描述符 */
 };
 
 inline auto storage_engine() -> StorageEngine::ptr {

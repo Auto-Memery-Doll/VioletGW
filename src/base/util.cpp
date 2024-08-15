@@ -1,4 +1,5 @@
 #include "util.hpp"
+#include "base/type.hpp"
 #include <algorithm>
 #include <atomic>
 #include <boost/container_hash/hash.hpp>
@@ -205,6 +206,22 @@ uint32_t fnv(const std::string &data) {
     uint32_t fnv_value = boost::hash_value(data);
     return fnv_value;
 }
+
+std::string clock_to_str(const fg_clock_t& tp) {
+    // 将 high_resolution_clock 转换成 system_clock
+    auto system_tp = std::chrono::system_clock::now() + 
+                     (tp - std::chrono::high_resolution_clock::now());
+
+    // 获取系统时间点对应的 std::time_t
+    std::time_t t = std::chrono::system_clock::to_time_t(system_tp);
+
+    // 格式化时间
+    char buffer[30];
+    std::strftime(buffer, sizeof(buffer), "%Y-%m-%d %H:%M:%S", std::localtime(&t));
+
+    return std::string(buffer);
+}
+
 
 }   // util
 }   // fg

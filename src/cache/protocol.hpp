@@ -2,8 +2,6 @@
 #define FLOW_GATEWAY_PROTOCOL_HPP
 
 #include "base/noncopyable.hpp"
-#include "base/type.hpp"
-#include "base/util.hpp"
 #include <cstdint>
 #include <ctime>
 #include <sys/types.h>
@@ -33,7 +31,6 @@ public:
 private:
     u_char _header[22];  /** 协议头，分辨该文件是否fg 缓存文件 */
     uint32_t _len;       /** 内容的长度 */
-    uint32_t _index;    /** 用于处理哈希碰撞 */
     char _context[0];    /** 动态数组，储存剩下的文件的信息 */
 };
 
@@ -42,12 +39,19 @@ inline CacheBlock* make_cache_block(char *block) {
     return reinterpret_cast<CacheBlock*>(block);
 }
 
+/** cache中节点的状态 */
+enum class CacheNodeStatus {
+    none,   /** 文件在最近的时间内没有被打开过 */
+    once,   /** 文件在最近的时间内已经被打开了一次 */
+    opened, /** 文件已经处于打开状态 */
+};
+
 //
 //
 // trie中保存的元素的结构
 struct CacheEle {
     int fd; /** 文件描述符符 */
-    bool lru2;   /** 是否在lru2管理器中打开 */
+    CacheNodeStatus status = CacheNodeStatus::none;   /** 是否在lru2管理器中打开 */
 };
 
 }   // cache

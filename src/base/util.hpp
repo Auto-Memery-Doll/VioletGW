@@ -242,6 +242,10 @@ inline fg_clock_t now() {
     return std::chrono::high_resolution_clock::now();
 }
 
+//
+//
+// 将时间转换成字符串
+std::string clock_to_str(const fg_clock_t& tp);
 }   // util
 }   // fg
 

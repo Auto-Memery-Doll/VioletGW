@@ -298,6 +298,19 @@ test_crc/fast:
 	$(MAKE) $(MAKESILENT) -f bin/Test/base/CMakeFiles/test_crc.dir/build.make bin/Test/base/CMakeFiles/test_crc.dir/build
 .PHONY : test_crc/fast
 
+#=============================================================================
+# Target rules for targets named test_lru-2
+
+# Build rule for target.
+test_lru-2: cmake_check_build_system
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 test_lru-2
+.PHONY : test_lru-2
+
+# fast build rule for target.
+test_lru-2/fast:
+	$(MAKE) $(MAKESILENT) -f bin/Test/cache/CMakeFiles/test_lru-2.dir/build.make bin/Test/cache/CMakeFiles/test_lru-2.dir/build
+.PHONY : test_lru-2/fast
+
 # Help Target
 help:
 	@echo "The following are some of the valid targets for this Makefile:"
@@ -317,6 +330,7 @@ help:
 	@echo "... test_crc"
 	@echo "... test_log"
 	@echo "... test_log_1"
+	@echo "... test_lru-2"
 	@echo "... test_lwip_1"
 	@echo "... test_multi_trie"
 	@echo "... test_trie"
