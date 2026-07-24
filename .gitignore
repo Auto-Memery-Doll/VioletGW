@@ -32,9 +32,9 @@
 *.app
 tools/fgcp/fgcp
 
-build/*
-.cache/*
+build/
+.cache/
 compile_commands.json
 .dpdk_runtime/
 .vscode/
-.clangd/
+.clangd
