@@ -1,1 +1,0 @@
-/usr/bin/c++ CMakeFiles/test_lwip_1.dir/test_lwip_1.cpp.o -o test_lwip_1  ../../Src/bin/Lwip/liblwip.a 
