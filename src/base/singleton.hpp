@@ -1,11 +1,10 @@
-#ifndef FLOW_GATEWAY_SINGLETON_HPP
-#define FLOW_GATEWAY_SINGLETON_HPP
+#pragma once
 
 #include "base/noncopyable.hpp"
 #include <memory>
 #include <mutex>
 
-namespace fg {
+namespace vgm {
 namespace base {
 
 template <typename T>
@@ -30,9 +29,8 @@ private:
 };
 
 }   // base
-}   // fg
+}   // vgm
 
 template<typename T>
-std::shared_ptr<T> fg::base::Singletion<T>::_obj = nullptr;
+std::shared_ptr<T> vgm::base::Singletion<T>::_obj = nullptr;
 
-#endif // !FLOW_GATEWAY_SINGLETON_HPP

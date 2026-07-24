@@ -30,6 +30,9 @@
 *.exe
 *.out
 *.app
+tools/fgcp/fgcp
 
 build/*
 .cache/*
+compile_commands.json
+.dpdk_runtime/

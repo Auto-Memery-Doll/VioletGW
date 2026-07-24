@@ -1,153 +1,18 @@
-#include "util.hpp"
-#include "base/type.hpp"
-#include <algorithm>
-#include <atomic>
-#include <boost/container_hash/hash.hpp>
-#include <cstdint>
-#include <cstdio>
-#include <cstring>
-#include <generic/rte_spinlock.h>
-#include <iostream>
-#include <mutex>
-#include <sstream>
-#include <string>
+#include "base/util.hpp"
 
-namespace fg {
+#include <boost/container_hash/hash.hpp>
+#include <cstdio>
+#include <ctime>
+
+namespace vgm {
 namespace util {
 
-std::string itoa(int i) {
-    char istr[6] = {'0', '0', '0', '0', '0', '0'};
-    for (int j = 5; j >= 0; -- j) {
-        int r = i % 10;
-        i /= 10;
-        istr[j] = '0' + r; 
-    }
-    return std::string(istr);
+void mac_dump(char* str, const rte_ether_addr& addr) {
+    snprintf(str, VGM_MAC_DUMP_LEN, "%02X:%02X:%02X:%02X:%02X:%02X",
+             addr.addr_bytes[0], addr.addr_bytes[1], addr.addr_bytes[2],
+             addr.addr_bytes[3], addr.addr_bytes[4], addr.addr_bytes[5]);
 }
 
-std::string ui32toa(uint32_t ui32) {
-    std::string ui32_str;
-    while (ui32 > 0) {
-        int i = ui32 % 10;
-        ui32 /= 10;
-        ui32_str += '0' + i;
-    }
-    std::reverse(ui32_str.begin(), ui32_str.end());
-    return ui32_str;
-}
-
-std::string dtoa(double value) {
-    std::ostringstream stream;
-    stream << value;
-    return stream.str();
-}
-
-std::string ui64toa(uint64_t ui64) {
-    std::string ui64_str;
-    while (ui64 > 0) {
-        int i = ui64 % 10;
-        ui64 /= 10;
-        ui64_str += '0' + i;
-    }
-    std::reverse(ui64_str.begin(), ui64_str.end());
-    return ui64_str;
-}
-
-void mac_dump(char *str, const rte_ether_addr &addr) {
-    snprintf(str, 30, "%02X:%02X:%02X:%02X:%02X:%02X",
-        addr.addr_bytes[0], addr.addr_bytes[1],
-        addr.addr_bytes[2], addr.addr_bytes[3],
-        addr.addr_bytes[4], addr.addr_bytes[5]);
-}
-
-char LWIP_netif_name_format[] = "00";
-char * lwip_name(char format[], int port) {
-    int size = ::strlen(format);
-    std::string istr = itoa(port);
-    int it = size -1;
-    for (int i = istr.size()-1; i >= 0; -- i) {
-        format[it--] = istr[i];
-    }
-    return format;
-}
-
-//
-//
-// SpinMutex
-void SpinMutex::lock() {
-    rte_spinlock_lock(&_mtx);
-}
-
-void SpinMutex::unlock() {
-    rte_spinlock_unlock(&_mtx);
-}
-
-//
-//
-// 原子读写锁
-
-AtomicRWLock::AtomicRWLock() 
-:   _r_cnt(0)
-,   _writer(false)
-{
-    _mtx.clear();
-}
-
-void AtomicRWLock::r_lock() {
-    _mutex.lock();
-    return;
-
-    if (_writer.load()) {
-        while (_mtx.test_and_set())
-            ;
-    }
-    
-    if (_r_cnt.load() > 0) {
-        // 读锁已经被获取
-        _r_cnt++;
-        return;
-    }
-
-    /** 尝试获取读锁 */
-    while (_r_cnt.load() == 0 && _mtx.test_and_set()) 
-        ;
-    _r_cnt++;
-    std::cout << _r_cnt << std::endl;
-}
-
-void AtomicRWLock::r_unlock() {
-    _mutex.unlock();
-    return;
-
-    _r_cnt --;
-    if (_r_cnt.load() == 0)
-        _mtx.clear();
-    std::cout << _r_cnt << std::endl;
-}
-
-void AtomicRWLock::w_lock() {
-    _mutex.lock();
-    return;
-
-    // 防止写饥饿
-    bool except = false;
-    _writer.compare_exchange_weak(except, true);
-    while (_mtx.test_and_set()) 
-        ;
-}
-
-void AtomicRWLock::w_unlock() {
-    _mutex.unlock();
-    return;
-
-    _writer.store(false);
-    _mtx.clear();
-}
-
-//
-//
-// crc32
-/** crc表 */
 static const uint32_t crc32_table[256] = {
     0x00000000, 0x04c11db7, 0x09823b6e, 0x0d4326d9, 0x130476dc, 0x17c56b6b,
     0x1a864db2, 0x1e475005, 0x2608edb8, 0x22c9f00f, 0x2f8ad6d6, 0x2b4bcb61,
@@ -191,141 +56,30 @@ static const uint32_t crc32_table[256] = {
     0xea23f0af, 0xefe2ed18, 0xf0a5bd1d, 0xf464a0aa, 0xf9278673, 0xfde69bc4,
     0x89b8fd09, 0x8d79e0be, 0x803ac667, 0x84fbdbd0, 0x9abc8bd5, 0x9e7d966c,
     0x933eb0bb, 0x97ffad0c, 0xafb010b1, 0xab710d06, 0xa6322bdf, 0xa2f33668,
-    0xbcb4666d, 0xb8757bda, 0xb5365d03, 0xb1f740b4
-};
+    0xbcb4666d, 0xb8757bda, 0xb5365d03, 0xb1f740b4};
 
-uint32_t crc32(const std::string &data) {
-    uint32_t crc = 0xFFFF'FFFF;
+uint32_t crc32(const std::string& data) {
+    uint32_t crc = 0xFFFFFFFFu;
     for (unsigned char c : data) {
         crc = (crc >> 8) ^ crc32_table[(crc ^ c) & 0xFF];
     }
-    return crc ^ 0xFFFF'FFFF;
+    return crc ^ 0xFFFFFFFFu;
 }
 
-uint32_t fnv(const std::string &data) {
-    uint32_t fnv_value = boost::hash_value(data);
-    return fnv_value;
+uint32_t fnv(const std::string& data) {
+    return static_cast<uint32_t>(boost::hash_value(data));
 }
 
-std::string clock_to_str(const fg_clock_t& tp) {
-    // 将 high_resolution_clock 转换成 system_clock
-    auto system_tp = std::chrono::system_clock::now() + 
-                     (tp - std::chrono::high_resolution_clock::now());
-
-    // 获取系统时间点对应的 std::time_t
+std::string clock_to_str(const vgm_clock_t& tp) {
+    auto system_tp =
+        std::chrono::system_clock::now() +
+        (tp - std::chrono::high_resolution_clock::now());
     std::time_t t = std::chrono::system_clock::to_time_t(system_tp);
-
-    // 格式化时间
     char buffer[30];
-    std::strftime(buffer, sizeof(buffer), "%Y-%m-%d %H:%M:%S", std::localtime(&t));
-
+    std::strftime(buffer, sizeof(buffer), "%Y-%m-%d %H:%M:%S",
+                  std::localtime(&t));
     return std::string(buffer);
 }
 
-
-}   // util
-}   // fg
-
-//
-//
-// 特化以下std::unique_lock<fg::util::SpinMutex>
-template<>
-void std::unique_lock<fg::util::SpinMutex>::lock() {
-    if (_M_owns) {
-        this->_M_device->lock();
-        this->_M_owns = true;
-    }
-}
-
-template<>
-std::unique_lock<fg::util::SpinMutex>::unique_lock(fg::util::SpinMutex& _mtx) 
-:   _M_device(&_mtx)
-,   _M_owns(false)
-{
-    _M_device->lock();
-    _M_owns = true;
-}
-
-template<>
-std::unique_lock<fg::util::SpinMutex>::~unique_lock() {
-    if (_M_owns) {
-        this->_M_owns = false;
-        this->_M_device->unlock();
-    }
-}
-
-template<>
-void std::unique_lock<fg::util::SpinMutex>::unlock() {
-    this->_M_owns = false;
-    this->_M_device->unlock();
-}
-
-
-//
-//
-// std::unique_lock
-template<>
-void std::unique_lock<fg::util::AtomicRWLock>::lock() {
-    if (_M_owns) {
-        _M_device->w_lock();
-        this->_M_owns = true;
-    }
-}
-
-template<>
-std::unique_lock<fg::util::AtomicRWLock>::unique_lock(fg::util::AtomicRWLock& _mtx) 
-:   _M_device(&_mtx)
-,   _M_owns(false) 
-{
-    _M_device->w_lock();
-    this->_M_owns = true;
-}
-
-template<>
-std::unique_lock<fg::util::AtomicRWLock>::~unique_lock() {
-    if (_M_owns) {
-        _M_owns = false;
-        _M_device->w_unlock();
-    }
-}
-
-template<>
-void std::unique_lock<fg::util::AtomicRWLock>::unlock() {
-    _M_owns = false;
-    _M_device->w_unlock();
-}
-
-//
-//
-// std::shared_lock
-template<>
-void std::shared_lock<fg::util::AtomicRWLock>::lock() {
-    if (_M_owns) {
-        _M_pm->r_lock();
-        _M_owns = true;
-    }
-}
-
-template<>
-void std::shared_lock<fg::util::AtomicRWLock>::unlock() {
-    if (_M_owns) {
-        _M_owns = false;
-        _M_pm->r_unlock();
-    }
-}
-
-template<>
-std::shared_lock<fg::util::AtomicRWLock>::shared_lock(fg::util::AtomicRWLock& _mtx) 
-:   _M_pm(&_mtx)
-,   _M_owns(false) {
-    _M_pm->r_lock();
-    _M_owns = true;
-}
-
-template<>
-std::shared_lock<fg::util::AtomicRWLock>::~shared_lock() {
-    if (_M_owns) {
-        _M_owns = false;
-        _M_pm->r_unlock();
-    }
-}
+}  // namespace util
+}  // namespace vgm

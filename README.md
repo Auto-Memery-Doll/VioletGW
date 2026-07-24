@@ -1,6 +1,7 @@
 # flow_gateway
 
-#### 介绍
-用户态流量网关，参考nginx实现，基于dpdk和lwip实现用户态网络协议栈模块
+用户态 L4 UDP/IP 网关：基于 DPDK mbuf 的 VIP 接入、会话 NAT、upstream 负载均衡与转发。
 
-
+- 架构升级说明：[docs/architecture-upgrade-2026-07.md](docs/architecture-upgrade-2026-07.md)
+- 构建：`cmake -S . -B build -G Ninja && cmake --build build`
+- 单测：`ctest --test-dir build -L unit`

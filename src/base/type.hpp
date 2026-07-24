@@ -1,9 +1,5 @@
-#ifndef FLOW_GATEWAY_TYPE_HPP
-#define FLOW_GATEWAY_TYPE_HPP
+#pragma once
 
-
-#include "lwip/netif.h"
-#include "lwip/pbuf.h"
 #include <chrono>
 #include <condition_variable>
 #include <cstdint>
@@ -15,20 +11,14 @@ extern "C" {
 #include <rte_ether.h>
 }
 
-namespace fg {
+namespace vgm {
 
-using fg_mutex_t = std::mutex;
-using fg_cond_t = std::condition_variable;
-using fg_thread_t = std::thread;
-
-using pbuf_iter = pbuf*;
+using vgm_mutex_t = std::mutex;
+using vgm_cond_t = std::condition_variable;
+using vgm_thread_t = std::thread;
 
 using mac_addr_t = struct rte_ether_addr;
-
 using spinlock_t = rte_spinlock_t;
-
-//using LwipNetif = struct netif;
-using lwip_netif_t = struct netif*;
 
 using timeval_s = uint32_t;
 using timeval_ms = uint32_t;
@@ -36,13 +26,12 @@ using timeval_us = uint32_t;
 using timeval_min = uint32_t;
 using timeval_h = uint32_t;
 
-using fg_clock_t = std::chrono::time_point<std::chrono::high_resolution_clock>;
-using fg_duration_t = std::chrono::duration<uint32_t>;
+using vgm_clock_t = std::chrono::time_point<std::chrono::high_resolution_clock>;
+using vgm_duration_t = std::chrono::duration<uint32_t>;
 
-using fg_hash_fnv_t = uint32_t;
-using fg_hash_crc32_t = uint32_t;
-using fg_hash_std_t = uint32_t;
+using vgm_hash_fnv_t = uint32_t;
+using vgm_hash_crc32_t = uint32_t;
+using vgm_hash_std_t = uint32_t;
 
-}   // fg
+}  // namespace vgm
 
-#endif // !FLOW_GATEWAY_TYPE_HPP

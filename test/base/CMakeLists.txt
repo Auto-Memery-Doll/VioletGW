@@ -1,14 +1,5 @@
-add_executable(test_trie test_trie.cpp)
-target_link_libraries(test_trie base)
+vgm_add_gtest(log_test log_test.cpp)
+target_link_libraries(log_test PRIVATE base)
 
-add_executable(test_multi_trie test_multi_trie.cpp)
-target_link_libraries(test_multi_trie base)
-
-add_executable(test_log test_log.cpp)
-target_link_libraries(test_log base)
-
-add_executable(test_log_1 test_log_1.cpp)
-target_link_libraries(test_log_1 base)
-
-add_executable(test_crc test_crc.cpp)
-target_link_libraries(test_crc base)
+vgm_add_gtest(crc_test crc_test.cpp)
+target_link_libraries(crc_test PRIVATE base)
