@@ -188,13 +188,29 @@ ctest --test-dir build -L unit          # 21 个单元测试
 
 依赖：DPDK（pkg-config）、spdlog、GTest（系统或 FetchContent）、Boost（base/util）。
 
+### 7.1 压测（pktgen 统一客户端）
+
+fg 与 nginx 共用 **DPDK pktgen** + veth 实验室拓扑（地址与 `test/dpdk/mbuf_fixture.hpp` 一致）：
+
+```bash
+sudo apt install meson ninja-build libbsd-dev liblua5.4-dev libpcap-dev git
+./tools/stress/build_pktgen.sh   # pktgen-23.10.2 for apt DPDK 23.11
+./tools/stress/build_nginx.sh   # nginx 对比时需要
+
+sudo -E PKTGEN_SUT=nginx ./tools/stress/run_pktgen_bench.sh
+sudo -E PKTGEN_SUT=fg FG_BIN=./build/bin/flow_gw ./tools/stress/run_pktgen_bench.sh
+python3 tools/stress/compare_pktgen_results.py
+```
+
+设计说明：[pktgen-unified-bench-design.md](superpowers/specs/2026-07-25-pktgen-unified-bench-design.md)
+
 ---
 
 ## 8. 尚未完成 / 后续方向
 
 | 项 | 说明 |
 |----|------|
-| 全链路 DPDK I/O 联调 | `flow_gw` + vdev 真实收发包（当前 smoke 直接 `Forwarder::handle`） |
+| 全链路 DPDK I/O 生产化 | `flow_gw` + 物理 NIC / 多队列 RSS（WSL 上已用 pktgen + net_tap 联调） |
 | VIP/MAC 进 SHM | 仍在 `config.hpp` 常量 |
 | Go 控制面服务化 | 目前为 `fgcp` CLI，无 RPC/常驻进程 |
 | 健康检查 | 由 Go CP 实现，结果反映到 SHM upstream 列表 |
@@ -211,6 +227,7 @@ ctest --test-dir build -L unit          # 21 个单元测试
 | [shm-control-plane-design.md](superpowers/specs/2026-07-24-shm-control-plane-design.md) | 删除 balance + SHM |
 | [fwd-loop-and-fgcp-design.md](superpowers/specs/2026-07-24-fwd-loop-and-fgcp-design.md) | smoke + Go 写端 |
 | [wsl-dpdk-env-design.md](superpowers/specs/2026-07-24-wsl-dpdk-env-design.md) | WSL2 DPDK 环境 |
+| [pktgen-unified-bench-design.md](superpowers/specs/2026-07-25-pktgen-unified-bench-design.md) | pktgen 压测（fg / nginx） |
 
 ---
 

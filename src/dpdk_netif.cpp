@@ -142,15 +142,17 @@ static int check_link_status() {
     return link_up;
 }
 
-void init(int argc, char** argv) {
+void init(int argc, char** argv, unsigned mbuf_buf_size) {
     if (rte_eal_init(argc, argv) < 0) {
         rte_exit(EXIT_FAILURE, "rte_eal_init() failure.\n");
     }
 
+    const unsigned pool_buf_size =
+        mbuf_buf_size > 0 ? mbuf_buf_size : config::DPDK_mempool_block_size;
     struct rte_mempool* pool = rte_pktmbuf_pool_create(
         config::DPDK_mempool_name, config::DPDK_mempool_block_num,
         config::DPDK_mempool_cache_size, config::DPDK_mempool_private_size,
-        config::DPDK_mempool_block_size, rte_socket_id());
+        pool_buf_size, rte_socket_id());
     if (pool == nullptr) {
         rte_exit(EXIT_FAILURE, "rte_pktmbuf_pool_create() failure(%s)\n",
                  config::DPDK_mempool_name);
@@ -192,13 +194,13 @@ DpdkNetif::~DpdkNetif() {
     printf("DpdkNetif port %u down.\n", port_id_);
 }
 
-void DpdkNetif::init(uint16_t port) {
+void DpdkNetif::init(uint16_t port, uint16_t ring_size) {
     port_id_ = port;
-    rx_ring_ = make_ring<rte_mbuf>(util::RX_RING_NAME(port).c_str(),
-                                   config::VDEV_rx_ring_num,
+    const uint16_t ring_cap =
+        ring_size > 0 ? ring_size : config::VDEV_rx_ring_num;
+    rx_ring_ = make_ring<rte_mbuf>(util::RX_RING_NAME(port).c_str(), ring_cap,
                                    config::VDEV_rx_ring_mode);
-    tx_ring_ = make_ring<rte_mbuf>(util::TX_RING_NAME(port).c_str(),
-                                   config::VDEV_tx_ring_num,
+    tx_ring_ = make_ring<rte_mbuf>(util::TX_RING_NAME(port).c_str(), ring_cap,
                                    config::VDEV_tx_ring_mode);
 }
 
@@ -289,6 +291,10 @@ DpdkNetifManager::~DpdkNetifManager() {
 }
 
 void DpdkNetifManager::init() {
+    init({true, true, 0});
+}
+
+void DpdkNetifManager::init(const IoOptions& opts) {
     std::lock_guard<std::mutex> lock(mtx_);
 
     uint32_t port_mask = config::DPDK_vaild_port_marks;
@@ -302,11 +308,15 @@ void DpdkNetifManager::init() {
         }
 
         auto* netif = new DpdkNetif();
-        netif->init(static_cast<uint16_t>(i));
+        netif->init(static_cast<uint16_t>(i), opts.ring_size);
         netifs_.insert({i, netif});
 
-        rte_eal_remote_launch(DpdkNetif::run_recv, netif, rx_id);
-        rte_eal_remote_launch(DpdkNetif::run_send, netif, tx_id);
+        if (opts.rx_lcore) {
+            rte_eal_remote_launch(DpdkNetif::run_recv, netif, rx_id);
+        }
+        if (opts.tx_lcore) {
+            rte_eal_remote_launch(DpdkNetif::run_send, netif, tx_id);
+        }
 
         char mac_addr[VGM_MAC_DUMP_LEN];
         util::mac_dump(mac_addr, dpdk::DPDK_ether_addr[i]);

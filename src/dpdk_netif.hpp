@@ -16,7 +16,8 @@ namespace dpdk {
 extern struct rte_mempool* DPDK_mempool;
 extern struct rte_ether_addr DPDK_ether_addr[];
 
-void init(int argc, char* argv[]);
+/** mbuf_buf_size 0 = use config::DPDK_mempool_block_size */
+void init(int argc, char* argv[], unsigned mbuf_buf_size = 0);
 void clean();
 
 int rx_burst(uint16_t port_id, uint16_t queue_id, struct rte_mbuf** rx_pkts,
@@ -46,7 +47,7 @@ public:
 
 private:
     DpdkNetif() = default;
-    void init(uint16_t port);
+    void init(uint16_t port, uint16_t ring_size);
 
     void nic_recv();
     void nic_send();
@@ -67,7 +68,14 @@ public:
     using ptr = std::shared_ptr<DpdkNetifManager>;
     ~DpdkNetifManager();
 
+    struct IoOptions {
+        bool rx_lcore;
+        bool tx_lcore;
+        uint16_t ring_size;  /* 0 → config::VDEV_*_ring_num */
+    };
+
     void init();
+    void init(const IoOptions& opts);
     void stop();
     DpdkNetif* get_netif(int port);
 

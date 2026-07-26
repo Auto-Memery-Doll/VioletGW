@@ -1,0 +1,1 @@
+timestamp,sut,case_id,mode,seconds,warmup,flows,payload_bytes,client_sent,client_received,lost,loss_rate_pct,sent_pps,received_pps,offered_bps,received_bps,frame_bytes

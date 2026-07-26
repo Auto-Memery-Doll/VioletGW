@@ -5,3 +5,4 @@
 - 架构升级说明：[docs/architecture-upgrade-2026-07.md](docs/architecture-upgrade-2026-07.md)
 - 构建：`cmake -S . -B build -G Ninja && cmake --build build`
 - 单测：`ctest --test-dir build -L unit`
+- 压测（pktgen，fg / nginx）：见 [architecture-upgrade §7.1](docs/architecture-upgrade-2026-07.md#71-压测pktgen-统一客户端)
