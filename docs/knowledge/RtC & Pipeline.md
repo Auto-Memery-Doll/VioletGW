@@ -80,13 +80,37 @@ NIC ──► RX lcore ──► ring ──► Worker(s) ──► ring ──�
 
 ## 和 VioletGW 的关系
 
-当前工程更接近 **Pipeline**：
+二进制在 init 时通过 **gflags** 选择数据面模式（`main` 里在 EAL 之前解析，`remove_flags=true` 后剩余 argv 交给 `rte_eal_init`）。定义见 `src/dpdk/datapath_flags.cpp`。
+
+### Runtime modes
+
+| Mode | Flags | 行为 |
+|---|---|---|
+| **Pipeline**（默认） | `--datapath_mode=pipeline` | RX lcore → soft ring → worker → soft ring → TX lcore |
+| **Single-worker RTC**（P0） | `--datapath_mode=rtc --rtc_workers=1` | 同一 lcore 在 queue 0 上 RX → handle → TX；无 distributor |
+| Multi-worker RTC | `--rtc_workers=N`（N>1）+ `--rtc_steer=auto\|hw_rss\|soft_rr` | 设计已定，**P1/P2 尚未实现**（init 会报错） |
+
+```bash
+# Pipeline（默认）
+./build/bin/Src/vgw --datapath_mode=pipeline -l 0-2
+
+# 单核 RTC
+./build/bin/Src/vgw --datapath_mode=rtc --rtc_workers=1 -l 0
+```
+
+gflags 可写在命令行任意位置；EAL 选项（如 `-l`）在 gflags 被剥离后仍由 DPDK 正常解析。
+
+### Pipeline 路径（默认）
 
 1. **RX lcore**：`DpdkNetif::nic_recv()` 从 NIC 收包，`push_burst` 进 `rx_ring_`；ring 满则本核直接 `free` 丢包
 2. **Worker**：从 RX ring 取包，做 L4 转发 / 会话 / 选上游，再推进 `tx_ring_`
 3. **TX lcore**：`DpdkNetif::nic_send()` 从 TX ring 取包，`tx_burst` 发往网卡
 
-相关配置在 `src/dpdk/config.hpp`（`IO_RX_BURST` / `IO_TX_BURST` / `IO_RING_SIZE` 等），lcore 启动在 `DpdkNetifManager::init()`。
+相关配置在 `src/dpdk/config.hpp`（`IO_RX_BURST` / `IO_TX_BURST` / `IO_RING_SIZE` 等），lcore 启动在 `DpdkNetifManager::init()`。Pipeline 专用 gflags：`--io_ring_size`、`--io_rx_lcore`、`--io_tx_lcore`、`--io_tx_ring_full_sleep_us`。
+
+### Direct RTC 路径（`rtc_workers=1`）
+
+Worker 在同一 lcore 上直接 `rx_burst` / `tx_burst`（queue 0），不经 soft ring，也不启动 RX/TX I/O lcore。
 
 注意分层：
 
