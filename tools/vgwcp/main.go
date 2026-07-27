@@ -1,5 +1,5 @@
-// Command fgcp publishes upstream list + balance policy into flow_gateway SHM.
-// Layout matches src/vg_cp_shm.h (little-endian, natural alignment).
+// Command vgwcp publishes upstream list + balance policy into VGW SHM.
+// Layout matches src/vgw_cp_shm.h (little-endian, natural alignment).
 package main
 
 import (
@@ -15,9 +15,9 @@ import (
 )
 
 const (
-	magic      = 0x46474350 // 'FGCP'
+	magic      = 0x56475743 // 'VGWC'
 	maxEP      = 64
-	defaultSHM = "/flow_gateway_cp"
+	defaultSHM = "/vgw_cp"
 	policyMod  = 0
 	policyRR   = 1
 	shmBytes   = 4 + 4 + 1 + 1 + 2 + maxEP*8 // 524
@@ -44,7 +44,7 @@ func main() {
 	flag.Parse()
 
 	if len(ups) == 0 {
-		fmt.Fprintf(os.Stderr, "usage: fgcp [-shm name] [-policy mod|rr] -upstream ip:port [...]\n")
+		fmt.Fprintf(os.Stderr, "usage: vgwcp [-shm name] [-policy mod|rr] -upstream ip:port [...]\n")
 		os.Exit(2)
 	}
 

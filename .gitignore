@@ -18,6 +18,7 @@
 
 # Fortran module files
 *.mod
+!**/go.mod
 *.smod
 
 # Compiled Static libraries
@@ -31,6 +32,7 @@
 *.out
 *.app
 tools/vgwcp/vgwcp
+tools/vgwcp/vgmcp
 tools/stress/out/
 
 build/
