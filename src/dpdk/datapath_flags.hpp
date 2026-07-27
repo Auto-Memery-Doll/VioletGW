@@ -4,6 +4,8 @@
 
 #include <gflags/gflags.h>
 
+#include <vector>
+
 DECLARE_string(datapath_mode);
 DECLARE_uint64(datapath_port_mask);
 DECLARE_uint32(datapath_worker_port);
@@ -17,6 +19,8 @@ DECLARE_uint32(rtc_dist_ring_size);
 
 namespace vgw {
 
+void parse_vgw_command_line_flags(int argc, char** argv,
+                                  std::vector<char*>* eal_argv);
 DatapathConfig datapath_config_from_flags();
 
 }  // namespace vgw

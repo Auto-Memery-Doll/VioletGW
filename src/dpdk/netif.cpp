@@ -3,9 +3,11 @@
 #include "base/util.hpp"
 #include "dpdk/config.hpp"
 
+#include <algorithm>
 #include <cassert>
 #include <cstdio>
 #include <cstring>
+#include <limits>
 #include <new>
 #include <unistd.h>
 
@@ -251,7 +253,10 @@ unsigned DpdkNetif::recv_burst(rte_mbuf** pkts, unsigned n) {
         return state_.pipeline.rx_ring->pop_burst(pkts, n);
     case DatapathMode::Rtc:
         return static_cast<unsigned>(
-            dpdk::rx_burst(port_id_, queue_id_, pkts, static_cast<uint16_t>(n)));
+            dpdk::rx_burst(port_id_, queue_id_, pkts,
+                           static_cast<uint16_t>(std::min(
+                               n, static_cast<unsigned>(
+                                      std::numeric_limits<uint16_t>::max())))));
     }
     return 0;
 }
@@ -273,7 +278,10 @@ unsigned DpdkNetif::send_burst(rte_mbuf** pkts, unsigned n) {
     }
     case DatapathMode::Rtc:
         return static_cast<unsigned>(
-            dpdk::tx_burst(port_id_, queue_id_, pkts, static_cast<uint16_t>(n)));
+            dpdk::tx_burst(port_id_, queue_id_, pkts,
+                           static_cast<uint16_t>(std::min(
+                               n, static_cast<unsigned>(
+                                      std::numeric_limits<uint16_t>::max())))));
     }
     return 0;
 }

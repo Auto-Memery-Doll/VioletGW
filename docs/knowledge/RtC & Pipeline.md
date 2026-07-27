@@ -80,7 +80,7 @@ NIC ──► RX lcore ──► ring ──► Worker(s) ──► ring ──�
 
 ## 和 VioletGW 的关系
 
-二进制在 init 时通过 **gflags** 选择数据面模式（`main` 里在 EAL 之前解析，`remove_flags=true` 后剩余 argv 交给 `rte_eal_init`）。定义见 `src/dpdk/datapath_flags.cpp`。
+二进制在 init 时通过 **gflags** 选择数据面模式。`main` only sends VGW flags (`--datapath_*`, `--io_*`, `--rtc_*`, `--flagfile`, and gflags help/version flags) to gflags; it forwards all other arguments unchanged to `rte_eal_init`. The `--` separator is optional. Definitions are in `src/dpdk/datapath_flags.cpp`.
 
 ### Runtime modes
 
@@ -98,7 +98,7 @@ NIC ──► RX lcore ──► ring ──► Worker(s) ──► ring ──�
 ./build/bin/Src/vgw --datapath_mode=rtc --rtc_workers=1 -l 0
 ```
 
-gflags 可写在命令行任意位置；EAL 选项（如 `-l`）在 gflags 被剥离后仍由 DPDK 正常解析。
+VGW long flags can appear before EAL arguments. EAL options such as `-l`, `--no-huge`, and `--no-pci` bypass gflags and reach DPDK unchanged; use `--` only when an explicit separator is preferred.
 
 ### Pipeline 路径（默认）
 

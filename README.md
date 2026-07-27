@@ -8,6 +8,7 @@
 - 构建：`cmake -S . -B build -G Ninja && cmake --build build`
 - 运行（Pipeline，默认）：`sudo ./build/bin/Src/vgw --datapath_mode=pipeline -l 0-2`
 - 运行（单核 RTC）：`sudo ./build/bin/Src/vgw --datapath_mode=rtc --rtc_workers=1 -l 0`
+- CLI: VGW consumes only `--datapath_*`, `--io_*`, `--rtc_*`, `--flagfile`, and gflags help/version flags; all other arguments, including DPDK `-l` and `--no-huge`, are passed to EAL unchanged. `--` may optionally separate VGW flags from EAL arguments.
 - 数据面模式说明：[docs/knowledge/RtC & Pipeline.md](docs/knowledge/RtC%20%26%20Pipeline.md)
 - 单测：`ctest --test-dir build -L unit`（[test/README.md](test/README.md)）
 - 压测：`sudo -E ./tools/stress/run.sh`（[tools/stress/README.md](tools/stress/README.md)）
