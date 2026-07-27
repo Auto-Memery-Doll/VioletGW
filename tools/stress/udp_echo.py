@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Minimal UDP echo server (upstream backend for nginx stream bench)."""
+"""Minimal UDP echo server (kernel upstream backend for PCI stress)."""
 from __future__ import annotations
 
 import argparse
@@ -10,7 +10,7 @@ import sys
 def main() -> int:
     parser = argparse.ArgumentParser(description="UDP echo server")
     parser.add_argument("--bind", default="127.0.0.1")
-    parser.add_argument("--port", type=int, default=19053)
+    parser.add_argument("--port", type=int, default=53)
     args = parser.parse_args()
 
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)

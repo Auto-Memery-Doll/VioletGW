@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate pktgen Lua script for one client-side bench case (C01–C08)."""
+"""Generate one pktgen Lua case (C01–C08)."""
 from __future__ import annotations
 
 import argparse
@@ -38,11 +38,20 @@ pktgen.range.dst_port(port, "inc", 0)
 pktgen.range.dst_port(port, "min", {dst_port})
 pktgen.range.dst_port(port, "max", {dst_port})
 
+pktgen.range.src_mac(port, "start", "{src_mac}")
+pktgen.range.src_mac(port, "inc", "00:00:00:00:00:00")
+pktgen.range.src_mac(port, "min", "{src_mac}")
+pktgen.range.src_mac(port, "max", "{src_mac}")
+
+pktgen.range.dst_mac(port, "start", "{dst_mac}")
+pktgen.range.dst_mac(port, "inc", "00:00:00:00:00:00")
+pktgen.range.dst_mac(port, "min", "{dst_mac}")
+pktgen.range.dst_mac(port, "max", "{dst_mac}")
+
 {src_port_range}
 
 pktgen.set_range(port, "on")
 
--- Warmup (stats baseline)
 pktgen.start(port)
 pktgen.delay(warmup_sec * 1000)
 pktgen.stop(port)
@@ -77,6 +86,9 @@ print(string.format(
   "sent_pps=%.0f received_pps=%.0f offered_bps=%.0f received_bps=%.0f frame_bytes=%d",
   measure_sec, warmup_sec,
   tx, rx, lost, loss_pct, sent_pps, recv_pps, offered_bps, received_bps, fb))
+
+-- Required: otherwise pktgen stays in the interactive CLI and never exits.
+pktgen.quit()
 """
 
 SRC_PORT_HOT = """\
@@ -85,13 +97,7 @@ pktgen.range.src_port(port, "inc", 0)
 pktgen.range.src_port(port, "min", {sport})
 pktgen.range.src_port(port, "max", {sport})"""
 
-SRC_PORT_MULTI = """\
-pktgen.range.src_port(port, "start", {sport_min})
-pktgen.range.src_port(port, "inc", 1)
-pktgen.range.src_port(port, "min", {sport_min})
-pktgen.range.src_port(port, "max", {sport_max})"""
-
-SRC_PORT_NEWFLOW = """\
+SRC_PORT_RANGE = """\
 pktgen.range.src_port(port, "start", {sport_min})
 pktgen.range.src_port(port, "inc", 1)
 pktgen.range.src_port(port, "min", {sport_min})
@@ -99,7 +105,7 @@ pktgen.range.src_port(port, "max", {sport_max})"""
 
 
 def frame_size(payload: int) -> int:
-    return 14 + 20 + 8 + payload  # eth + ipv4 + udp + payload
+    return 14 + 20 + 8 + payload
 
 
 def src_port_block(mode: str, flows: int) -> str:
@@ -108,36 +114,43 @@ def src_port_block(mode: str, flows: int) -> str:
     if mode == "hot":
         return SRC_PORT_HOT.format(sport=base)
     if mode in ("multi", "bidir"):
-        return SRC_PORT_MULTI.format(sport_min=base, sport_max=base + flows - 1)
+        return SRC_PORT_RANGE.format(sport_min=base, sport_max=base + flows - 1)
     if mode == "newflow":
         span = min(flows, 65530 - newflow_base + 1)
-        return SRC_PORT_NEWFLOW.format(
+        return SRC_PORT_RANGE.format(
             sport_min=newflow_base, sport_max=newflow_base + span - 1
         )
     raise ValueError(f"unknown mode {mode}")
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--sut", required=True)
-    parser.add_argument("--case", required=True)
-    parser.add_argument("--mode", required=True)
-    parser.add_argument("--payload", type=int, required=True)
-    parser.add_argument("--seconds", type=int, default=30)
-    parser.add_argument("--warmup", type=int, default=5)
-    parser.add_argument("--flows", type=int, default=1000)
-    parser.add_argument("--rate", type=int, default=100, help="pktgen rate percent")
-    parser.add_argument("-o", "--output", type=Path, required=True)
-    args = parser.parse_args()
+    p = argparse.ArgumentParser()
+    p.add_argument("--sut", required=True)
+    p.add_argument("--case", required=True)
+    p.add_argument("--mode", required=True)
+    p.add_argument("--payload", type=int, required=True)
+    p.add_argument("--seconds", type=int, default=30)
+    p.add_argument("--warmup", type=int, default=5)
+    p.add_argument("--flows", type=int, default=1000)
+    p.add_argument("--rate", type=int, default=100)
+    p.add_argument("--src-ip", default="10.0.0.1")
+    p.add_argument("--dst-ip", default="192.168.1.100")
+    p.add_argument("--dst-port", type=int, default=53)
+    p.add_argument("--src-mac", default="02:00:00:00:00:03")
+    p.add_argument("--dst-mac", default="02:00:00:00:00:01")
+    p.add_argument("-o", "--output", type=Path, required=True)
+    args = p.parse_args()
 
     body = HEADER.format(
         measure_sec=args.seconds,
         warmup_sec=args.warmup,
         frame_size=frame_size(args.payload),
         rate_pct=args.rate,
-        dst_ip="192.168.1.100",
-        src_ip="10.0.0.1",
-        dst_port=53,
+        dst_ip=args.dst_ip,
+        src_ip=args.src_ip,
+        dst_port=args.dst_port,
+        src_mac=args.src_mac,
+        dst_mac=args.dst_mac,
         src_port_range=src_port_block(args.mode, args.flows),
         sut=args.sut,
         case_id=args.case,
