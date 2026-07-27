@@ -11,7 +11,7 @@
 #include <rte_ring.h>
 #include <rte_ring_core.h>
 
-namespace vgm {
+namespace vgw {
 
 template<typename T>
 class Ring : public base::noncopyable {

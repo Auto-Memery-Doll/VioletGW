@@ -10,7 +10,7 @@
 #include <rte_mbuf.h>
 #include <rte_mempool.h>
 
-namespace vgm {
+namespace vgw {
 namespace dpdk {
 
 extern struct rte_mempool* DPDK_mempool;
@@ -71,7 +71,7 @@ public:
     struct IoOptions {
         bool rx_lcore;
         bool tx_lcore;
-        uint16_t ring_size;  /* 0 → config::VDEV_*_ring_num */
+        uint16_t ring_size;  /* 0 → config::IO_RING_SIZE */
     };
 
     void init();
@@ -90,5 +90,4 @@ inline auto dpdk_netif_mg() -> DpdkNetifManager::ptr {
     return DpdkNetifManager::GetInstance();
 }
 
-}  // namespace vgm
-
+}  // namespace vgw

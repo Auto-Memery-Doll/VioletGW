@@ -7,7 +7,7 @@
 #include <spdlog/sinks/stdout_color_sinks.h>
 #include <spdlog/spdlog.h>
 
-namespace vgm {
+namespace vgw {
 
 void init_logging(const std::string& log_file) {
     std::vector<spdlog::sink_ptr> sinks;
@@ -18,11 +18,11 @@ void init_logging(const std::string& log_file) {
             log_file, 10 * 1024 * 1024, 3));
     }
 
-    auto logger = std::make_shared<spdlog::logger>("vgm", sinks.begin(), sinks.end());
+    auto logger = std::make_shared<spdlog::logger>("vgw", sinks.begin(), sinks.end());
     logger->set_level(spdlog::level::info);
     logger->set_pattern("[%Y-%m-%d %H:%M:%S.%e] [%^%l%$] %v");
     spdlog::set_default_logger(logger);
     spdlog::flush_on(spdlog::level::warn);
 }
 
-}  // namespace vgm
+}  // namespace vgw

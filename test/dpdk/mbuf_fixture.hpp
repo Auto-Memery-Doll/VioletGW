@@ -1,7 +1,9 @@
 #pragma once
 
 #include "config.hpp"
+#include "dpdk/config.hpp"
 #include "packet.hpp"
+#include "vgw.h"
 
 #include <cstdint>
 #include <cstring>
@@ -10,16 +12,22 @@
 #include <rte_mbuf.h>
 #include <rte_udp.h>
 
-namespace vgm {
+namespace vgw {
 namespace bench {
 
+/** Lab L3 endpoints — derived from config.hpp (+ fixed client). */
+inline uint32_t kVip() { return VioletGW::ipv4_from(config::VIP_IP_OCTETS); }
+inline uint32_t kGw() {
+    return VioletGW::ipv4_from(config::GATEWAY_IP_OCTETS);
+}
+inline uint32_t kUpstream() {
+    return VioletGW::ipv4_from(config::UPSTREAM0_IP_OCTETS);
+}
+inline uint16_t kVipPort() { return config::VIP_PORT; }
+inline uint16_t kUpPort() { return config::UPSTREAM0_PORT; }
+
 constexpr uint32_t kClient = RTE_IPV4(10, 0, 0, 1);
-constexpr uint32_t kVip = RTE_IPV4(192, 168, 1, 100);
-constexpr uint32_t kGw = RTE_IPV4(192, 168, 1, 10);
-constexpr uint32_t kUpstream = RTE_IPV4(10, 1, 0, 2);
-constexpr uint16_t kVipPort = 53;
 constexpr uint16_t kClientPortBase = 4000;
-constexpr uint16_t kUpPort = 53;
 
 inline uint16_t frame_len(uint16_t payload_len = 4) {
     return static_cast<uint16_t>(sizeof(rte_ether_hdr) + sizeof(rte_ipv4_hdr) +
@@ -27,9 +35,9 @@ inline uint16_t frame_len(uint16_t payload_len = 4) {
 }
 
 inline unsigned required_mbuf_buf_size(unsigned payload_len) {
-    const unsigned need = RTE_PKTMBUF_HEADROOM + frame_len(
-                              static_cast<uint16_t>(payload_len));
-    unsigned size = vgm::config::DPDK_mempool_block_size;
+    const unsigned need =
+        RTE_PKTMBUF_HEADROOM + frame_len(static_cast<uint16_t>(payload_len));
+    unsigned size = config::DPDK_mempool_block_size;
     if (need <= size) {
         return size;
     }
@@ -76,7 +84,7 @@ inline void fill_forward_mbuf(rte_mbuf* m,
                               uint16_t payload_len = 4) {
     const uint16_t len = frame_len(payload_len);
     uint8_t* data = rte_pktmbuf_mtod(m, uint8_t*);
-    fill_udp(data, kClient, client_port, kVip, kVipPort, payload_len);
+    fill_udp(data, kClient, client_port, kVip(), kVipPort(), payload_len);
     m->data_len = len;
     m->pkt_len = len;
 }
@@ -86,10 +94,10 @@ inline void fill_reverse_mbuf(rte_mbuf* m,
                               uint16_t payload_len = 4) {
     const uint16_t len = frame_len(payload_len);
     uint8_t* data = rte_pktmbuf_mtod(m, uint8_t*);
-    fill_udp(data, kUpstream, kUpPort, kGw, snat_port, payload_len);
+    fill_udp(data, kUpstream(), kUpPort(), kGw(), snat_port, payload_len);
     m->data_len = len;
     m->pkt_len = len;
 }
 
 }  // namespace bench
-}  // namespace vgm
+}  // namespace vgw

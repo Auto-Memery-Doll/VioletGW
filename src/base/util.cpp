@@ -4,11 +4,11 @@
 #include <cstdio>
 #include <ctime>
 
-namespace vgm {
+namespace vgw {
 namespace util {
 
 void mac_dump(char* str, const rte_ether_addr& addr) {
-    snprintf(str, VGM_MAC_DUMP_LEN, "%02X:%02X:%02X:%02X:%02X:%02X",
+    snprintf(str, VGW_MAC_DUMP_LEN, "%02X:%02X:%02X:%02X:%02X:%02X",
              addr.addr_bytes[0], addr.addr_bytes[1], addr.addr_bytes[2],
              addr.addr_bytes[3], addr.addr_bytes[4], addr.addr_bytes[5]);
 }
@@ -70,7 +70,7 @@ uint32_t fnv(const std::string& data) {
     return static_cast<uint32_t>(boost::hash_value(data));
 }
 
-std::string clock_to_str(const vgm_clock_t& tp) {
+std::string clock_to_str(const vgw_clock_t& tp) {
     auto system_tp =
         std::chrono::system_clock::now() +
         (tp - std::chrono::high_resolution_clock::now());
@@ -82,4 +82,4 @@ std::string clock_to_str(const vgm_clock_t& tp) {
 }
 
 }  // namespace util
-}  // namespace vgm
+}  // namespace vgw

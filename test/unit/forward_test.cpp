@@ -10,19 +10,19 @@
 #include <rte_ip.h>
 #include <rte_udp.h>
 
-using vgm::forward::ForwardConfig;
-using vgm::forward::Forwarder;
-using vgm::forward::HandleResult;
-using vgm::forward::Upstream;
-using vgm::forward::apply_forward_nat;
-using vgm::forward::apply_reverse_nat;
-using vgm::forward::flow_key_from_view;
-using vgm::packet::PacketView;
-using vgm::packet::parse_udp_ipv4;
-using vgm::packet::refresh_ipv4_checksum;
-using vgm::packet::refresh_udp_checksum;
-using vgm::session::Session;
-using vgm::session::SessionTable;
+using vgw::forward::ForwardConfig;
+using vgw::forward::Forwarder;
+using vgw::forward::HandleResult;
+using vgw::forward::Upstream;
+using vgw::forward::apply_forward_nat;
+using vgw::forward::apply_reverse_nat;
+using vgw::forward::flow_key_from_view;
+using vgw::packet::PacketView;
+using vgw::packet::parse_udp_ipv4;
+using vgw::packet::refresh_ipv4_checksum;
+using vgw::packet::refresh_udp_checksum;
+using vgw::session::Session;
+using vgw::session::SessionTable;
 
 namespace {
 
@@ -85,7 +85,7 @@ TEST(ForwardNatTest, ForwardAndReverseRewrite) {
 
     SessionTable table(gw);
     auto* s = table.create(
-        vgm::session::FlowKey{client, vip, 5000, 53, 17}, upstream, 53, 0);
+        vgw::session::FlowKey{client, vip, 5000, 53, 17}, upstream, 53, 0);
     ASSERT_NE(s, nullptr);
 
     uint8_t frame[128];
@@ -94,7 +94,7 @@ TEST(ForwardNatTest, ForwardAndReverseRewrite) {
     bind_mbuf(&m, frame, frame_len());
 
     PacketView view;
-    ASSERT_EQ(parse_udp_ipv4(&m, &view, false), vgm::packet::ParseStatus::ok);
+    ASSERT_EQ(parse_udp_ipv4(&m, &view, false), vgw::packet::ParseStatus::ok);
     apply_forward_nat(&view, *s, gw, false);
 
     EXPECT_EQ(view.src_ip(), gw);
@@ -105,7 +105,7 @@ TEST(ForwardNatTest, ForwardAndReverseRewrite) {
     // Simulate reverse packet: upstream -> gw:snat
     fill_udp(frame, sizeof(frame), upstream, 53, gw, s->snat_port);
     bind_mbuf(&m, frame, frame_len());
-    ASSERT_EQ(parse_udp_ipv4(&m, &view, false), vgm::packet::ParseStatus::ok);
+    ASSERT_EQ(parse_udp_ipv4(&m, &view, false), vgw::packet::ParseStatus::ok);
     apply_reverse_nat(&view, *s, false);
 
     EXPECT_EQ(view.src_ip(), vip);
@@ -125,7 +125,7 @@ TEST(ForwarderTest, CreatesSessionAndForwardsVipTraffic) {
     cfg.vip = {vip, 53};
     cfg.gateway_ip_be = gw;
 
-    Forwarder fwd(cfg, &table, [&](const vgm::session::FlowKey&, Upstream* up) {
+    Forwarder fwd(cfg, &table, [&](const vgw::session::FlowKey&, Upstream* up) {
         up->ip_be = upstream;
         up->port = 53;
         return true;
@@ -140,7 +140,7 @@ TEST(ForwarderTest, CreatesSessionAndForwardsVipTraffic) {
     EXPECT_EQ(table.size(), 1u);
 
     PacketView view;
-    ASSERT_EQ(parse_udp_ipv4(&m, &view, false), vgm::packet::ParseStatus::ok);
+    ASSERT_EQ(parse_udp_ipv4(&m, &view, false), vgw::packet::ParseStatus::ok);
     EXPECT_EQ(view.dst_ip(), upstream);
     EXPECT_EQ(view.src_ip(), gw);
 }
@@ -151,7 +151,7 @@ TEST(ForwarderTest, DropsUnknownNonVip) {
     cfg.vip = {RTE_IPV4(192, 168, 1, 100), 53};
     cfg.gateway_ip_be = RTE_IPV4(192, 168, 1, 10);
 
-    Forwarder fwd(cfg, &table, [](const vgm::session::FlowKey&, Upstream*) {
+    Forwarder fwd(cfg, &table, [](const vgw::session::FlowKey&, Upstream*) {
         return false;
     });
 

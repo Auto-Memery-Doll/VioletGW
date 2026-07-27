@@ -3,7 +3,7 @@
 #include <cstring>
 #include <netinet/in.h>
 
-namespace vgm {
+namespace vgw {
 namespace packet {
 
 namespace {
@@ -114,4 +114,4 @@ void refresh_udp_checksum(const rte_ipv4_hdr* ip, rte_udp_hdr* udp) {
 }
 
 }  // namespace packet
-}  // namespace vgm
+}  // namespace vgw

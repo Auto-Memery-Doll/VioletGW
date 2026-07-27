@@ -7,7 +7,7 @@
 #include <memory>
 #include <vector>
 
-namespace vgm {
+namespace vgw {
 namespace upstream {
 
 struct UpstreamEndpoint {
@@ -52,5 +52,5 @@ private:
 };
 
 }  // namespace upstream
-}  // namespace vgm
+}  // namespace vgw
 

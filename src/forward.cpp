@@ -5,7 +5,7 @@
 #include <netinet/in.h>
 #include <rte_byteorder.h>
 
-namespace vgm {
+namespace vgw {
 namespace forward {
 
 session::FlowKey flow_key_from_view(const packet::PacketView& v) {
@@ -121,4 +121,4 @@ HandleResult Forwarder::handle(rte_mbuf* m, uint64_t now_ms) {
 }
 
 }  // namespace forward
-}  // namespace vgm
+}  // namespace vgw

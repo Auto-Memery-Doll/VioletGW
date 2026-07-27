@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.10)
 
-project(flow_gateway)
+project(VGW)
 
 include(FetchContent)
 
@@ -15,10 +15,10 @@ add_compile_options(-g -w -mssse3)
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(DPDK REQUIRED IMPORTED_TARGET libdpdk)
 
-add_library(fg_dpdk INTERFACE)
-target_link_libraries(fg_dpdk INTERFACE PkgConfig::DPDK)
-target_compile_definitions(fg_dpdk INTERFACE ALLOW_EXPERIMENTAL_API)
-link_libraries(fg_dpdk)
+add_library(vgw_dpdk INTERFACE)
+target_link_libraries(vgw_dpdk INTERFACE PkgConfig::DPDK)
+target_compile_definitions(vgw_dpdk INTERFACE ALLOW_EXPERIMENTAL_API)
+link_libraries(vgw_dpdk)
 
 # ---------------------------------------------------------------------------
 # spdlog (control-plane logging)
@@ -37,9 +37,9 @@ if(NOT spdlog_FOUND)
     FetchContent_MakeAvailable(spdlog)
 endif()
 
-add_library(fg_spdlog INTERFACE)
-target_link_libraries(fg_spdlog INTERFACE spdlog::spdlog)
-link_libraries(fg_spdlog)
+add_library(vgw_spdlog INTERFACE)
+target_link_libraries(vgw_spdlog INTERFACE spdlog::spdlog)
+link_libraries(vgw_spdlog)
 
 enable_testing()
 

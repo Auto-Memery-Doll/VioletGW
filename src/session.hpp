@@ -4,7 +4,7 @@
 #include <unordered_map>
 #include <vector>
 
-namespace vgm {
+namespace vgw {
 namespace session {
 
 /** UDP/IPv4 5-tuple. IPs are network-byte-order; ports are host-byte-order. */
@@ -99,5 +99,5 @@ private:
 };
 
 }  // namespace session
-}  // namespace vgm
+}  // namespace vgw
 

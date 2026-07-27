@@ -3,9 +3,9 @@
 #include <gtest/gtest.h>
 #include <rte_ip.h>
 
-using vgm::session::FlowKey;
-using vgm::session::Session;
-using vgm::session::SessionTable;
+using vgw::session::FlowKey;
+using vgw::session::Session;
+using vgw::session::SessionTable;
 
 namespace {
 

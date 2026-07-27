@@ -15,7 +15,7 @@ endif()
 
 include(GoogleTest)
 
-function(vgm_add_gtest target)
+function(vgw_add_gtest target)
     add_executable(${target} ${ARGN})
     target_link_libraries(${target} PRIVATE GTest::gtest_main)
     gtest_discover_tests(${target}
@@ -24,24 +24,5 @@ function(vgm_add_gtest target)
     )
 endfunction()
 
-# Base-layer tests
-add_subdirectory(base)
-
-# Gateway business logic tests (flat layout, mirrors src/)
-vgm_add_gtest(packet_test packet_test.cpp)
-target_link_libraries(packet_test PRIVATE packet)
-
-vgm_add_gtest(session_test session_test.cpp)
-target_link_libraries(session_test PRIVATE session)
-
-vgm_add_gtest(forward_test forward_test.cpp)
-target_link_libraries(forward_test PRIVATE forward)
-
-vgm_add_gtest(upstream_test upstream_test.cpp)
-target_link_libraries(upstream_test PRIVATE upstream)
-
-vgm_add_gtest(cp_shm_test cp_shm_test.cpp)
-target_link_libraries(cp_shm_test PRIVATE control)
-
-# DPDK smoke binaries (plain executables, not gtest unit tests)
+add_subdirectory(unit)
 add_subdirectory(dpdk)

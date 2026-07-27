@@ -6,16 +6,16 @@
 #include <string>
 #include <unistd.h>
 
-using vgm::control::CpShm;
-using vgm::control::CpShmSeed;
-using vgm::upstream::BalancePolicy;
-using vgm::upstream::UpstreamEndpoint;
-using vgm::upstream::UpstreamTable;
+using vgw::control::CpShm;
+using vgw::control::CpShmSeed;
+using vgw::upstream::BalancePolicy;
+using vgw::upstream::UpstreamEndpoint;
+using vgw::upstream::UpstreamTable;
 
 namespace {
 
 std::string test_shm_name() {
-    return std::string("/vg_cp_test_") + std::to_string(getpid()) + "_" +
+    return std::string("/vgw_cp_test_") + std::to_string(getpid()) + "_" +
            std::to_string(reinterpret_cast<uintptr_t>(&test_shm_name));
 }
 
@@ -32,7 +32,7 @@ TEST(CpShmTest, CreateSeedAndPollApply) {
     auto shm = CpShm::open(name, /*create_if_missing=*/true, &seed);
     ASSERT_NE(shm, nullptr);
     ASSERT_NE(shm->raw(), nullptr);
-    EXPECT_EQ(shm->raw()->magic, VG_CP_SHM_MAGIC);
+    EXPECT_EQ(shm->raw()->magic, VGW_CP_SHM_MAGIC);
     EXPECT_EQ(shm->raw()->count, 1);
 
     UpstreamTable table;
@@ -41,7 +41,7 @@ TEST(CpShmTest, CreateSeedAndPollApply) {
     EXPECT_FALSE(shm->poll_apply(&table));  // same version
 
     UpstreamEndpoint out;
-    vgm::session::FlowKey key{};
+    vgw::session::FlowKey key{};
     key.src_ip = RTE_IPV4(10, 0, 0, 1);
     key.src_port = 1;
     ASSERT_TRUE(table.pick(key, &out));
@@ -75,7 +75,7 @@ TEST(CpShmTest, PublishBumpsVersionAndUpdatesTable) {
     EXPECT_EQ(table.size(), 2u);
 
     UpstreamEndpoint out;
-    vgm::session::FlowKey key{};
+    vgw::session::FlowKey key{};
     key.src_ip = RTE_IPV4(1, 2, 3, 4);
     key.src_port = 99;
     ASSERT_TRUE(table.pick(key, &out));

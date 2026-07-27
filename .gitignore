@@ -30,7 +30,8 @@
 *.exe
 *.out
 *.app
-tools/fgcp/fgcp
+tools/vgwcp/vgwcp
+tools/stress/out/
 
 build/
 .cache/

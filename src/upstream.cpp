@@ -1,6 +1,6 @@
 #include "upstream.hpp"
 
-namespace vgm {
+namespace vgw {
 namespace upstream {
 
 UpstreamTable::UpstreamTable()
@@ -61,4 +61,4 @@ uint32_t UpstreamTable::hash_key(const session::FlowKey& key) {
 }
 
 }  // namespace upstream
-}  // namespace vgm
+}  // namespace vgw

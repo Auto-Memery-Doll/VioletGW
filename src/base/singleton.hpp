@@ -4,7 +4,7 @@
 #include <memory>
 #include <mutex>
 
-namespace vgm {
+namespace vgw {
 namespace base {
 
 template <typename T>
@@ -29,8 +29,8 @@ private:
 };
 
 }   // base
-}   // vgm
+}   // vgw
 
 template<typename T>
-std::shared_ptr<T> vgm::base::Singletion<T>::_obj = nullptr;
+std::shared_ptr<T> vgw::base::Singletion<T>::_obj = nullptr;
 

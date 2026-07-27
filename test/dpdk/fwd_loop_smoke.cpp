@@ -1,9 +1,12 @@
-#include "forward.hpp"
 #include "mbuf_fixture.hpp"
 #include "packet.hpp"
-#include "session.hpp"
+#include "vgw.h"
+
+#include "base/log.hpp"
 
 #include <cstdio>
+#include <string>
+#include <unistd.h>
 
 #include <rte_eal.h>
 #include <rte_mbuf.h>
@@ -31,6 +34,8 @@ bool expect_eq_u16(const char* what, uint16_t got, uint16_t want) {
 }  // namespace
 
 int main(int argc, char** argv) {
+    vgw::init_logging();
+
     int ret = rte_eal_init(argc, argv);
     if (ret < 0) {
         std::fprintf(stderr, "rte_eal_init failed\n");
@@ -45,77 +50,78 @@ int main(int argc, char** argv) {
         return 1;
     }
 
-    vgm::session::SessionTable sessions(vgm::bench::kGw);
-    vgm::forward::ForwardConfig cfg;
-    cfg.vip = {vgm::bench::kVip, vgm::bench::kVipPort};
-    cfg.gateway_ip_be = vgm::bench::kGw;
-
-    vgm::forward::Forwarder fwd(
-        cfg, &sessions,
-        [](const vgm::session::FlowKey&, vgm::forward::Upstream* up) {
-            up->ip_be = vgm::bench::kUpstream;
-            up->port = vgm::bench::kUpPort;
-            return true;
-        });
+    const std::string shm =
+        std::string("/vgw_fwd_smoke_") + std::to_string(getpid());
+    vgw::VioletGW gw;
+    if (gw.init_pipeline(shm.c_str()) != 0) {
+        std::fprintf(stderr, "init_pipeline failed\n");
+        vgw::control::CpShm::unlink_name(shm);
+        rte_eal_cleanup();
+        return 1;
+    }
 
     rte_mbuf* m = rte_pktmbuf_alloc(pool);
     if (m == nullptr) {
         std::fprintf(stderr, "mbuf alloc failed\n");
+        vgw::control::CpShm::unlink_name(shm);
         rte_eal_cleanup();
         return 1;
     }
 
-    vgm::bench::fill_forward_mbuf(m, vgm::bench::kClientPortBase);
-
-    if (fwd.handle(m, /*now_ms=*/1) != vgm::forward::HandleResult::tx_forward) {
-        std::fprintf(stderr, "FAIL forward handle\n");
-        rte_pktmbuf_free(m);
-        rte_eal_cleanup();
-        return 1;
-    }
-
-    vgm::packet::PacketView view;
-    if (vgm::packet::parse_udp_ipv4(m, &view, false) !=
-        vgm::packet::ParseStatus::ok) {
-        std::fprintf(stderr, "FAIL parse after forward\n");
-        rte_pktmbuf_free(m);
-        rte_eal_cleanup();
-        return 1;
-    }
+    vgw::bench::fill_forward_mbuf(m, vgw::bench::kClientPortBase);
 
     bool ok = true;
-    ok &= expect_eq_u32("fwd src_ip", view.src_ip(), vgm::bench::kGw);
-    ok &= expect_eq_u32("fwd dst_ip", view.dst_ip(), vgm::bench::kUpstream);
-    ok &= expect_eq_u16("fwd dst_port", view.dst_port(), vgm::bench::kUpPort);
-    const uint16_t snat = view.src_port();
-    if (snat == 0) {
-        std::fprintf(stderr, "FAIL snat_port is 0\n");
+    if (gw.handle(m, /*now_ms=*/1) != vgw::forward::HandleResult::tx_forward) {
+        std::fprintf(stderr, "FAIL forward handle\n");
         ok = false;
     }
 
-    vgm::bench::fill_reverse_mbuf(m, snat);
+    vgw::packet::PacketView view;
+    if (ok && vgw::packet::parse_udp_ipv4(m, &view, false) !=
+                  vgw::packet::ParseStatus::ok) {
+        std::fprintf(stderr, "FAIL parse after forward\n");
+        ok = false;
+    }
 
-    if (fwd.handle(m, /*now_ms=*/2) != vgm::forward::HandleResult::tx_reverse) {
-        std::fprintf(stderr, "FAIL reverse handle\n");
-        ok = false;
-    } else if (vgm::packet::parse_udp_ipv4(m, &view, false) !=
-               vgm::packet::ParseStatus::ok) {
-        std::fprintf(stderr, "FAIL parse after reverse\n");
-        ok = false;
-    } else {
-        ok &= expect_eq_u32("rev src_ip", view.src_ip(), vgm::bench::kVip);
-        ok &= expect_eq_u32("rev dst_ip", view.dst_ip(), vgm::bench::kClient);
-        ok &= expect_eq_u16("rev src_port", view.src_port(), vgm::bench::kVipPort);
-        ok &= expect_eq_u16("rev dst_port", view.dst_port(),
-                            vgm::bench::kClientPortBase);
+    uint16_t snat = 0;
+    if (ok) {
+        ok &= expect_eq_u32("fwd src_ip", view.src_ip(), vgw::bench::kGw());
+        ok &= expect_eq_u32("fwd dst_ip", view.dst_ip(), vgw::bench::kUpstream());
+        ok &= expect_eq_u16("fwd dst_port", view.dst_port(), vgw::bench::kUpPort());
+        snat = view.src_port();
+        if (snat == 0) {
+            std::fprintf(stderr, "FAIL snat_port is 0\n");
+            ok = false;
+        }
+    }
+
+    if (ok) {
+        vgw::bench::fill_reverse_mbuf(m, snat);
+        if (gw.handle(m, /*now_ms=*/2) !=
+            vgw::forward::HandleResult::tx_reverse) {
+            std::fprintf(stderr, "FAIL reverse handle\n");
+            ok = false;
+        } else if (vgw::packet::parse_udp_ipv4(m, &view, false) !=
+                   vgw::packet::ParseStatus::ok) {
+            std::fprintf(stderr, "FAIL parse after reverse\n");
+            ok = false;
+        } else {
+            ok &= expect_eq_u32("rev src_ip", view.src_ip(), vgw::bench::kVip());
+            ok &= expect_eq_u32("rev dst_ip", view.dst_ip(), vgw::bench::kClient);
+            ok &= expect_eq_u16("rev src_port", view.src_port(),
+                                vgw::bench::kVipPort());
+            ok &= expect_eq_u16("rev dst_port", view.dst_port(),
+                                vgw::bench::kClientPortBase);
+        }
     }
 
     rte_pktmbuf_free(m);
+    vgw::control::CpShm::unlink_name(shm);
     rte_eal_cleanup();
 
     if (!ok) {
         return 1;
     }
-    std::printf("fwd_loop_smoke OK (forward+reverse on real mbuf)\n");
+    std::printf("fwd_loop_smoke OK (VioletGW forward+reverse on real mbuf)\n");
     return 0;
 }

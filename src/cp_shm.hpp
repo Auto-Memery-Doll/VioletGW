@@ -1,6 +1,6 @@
 #pragma once
 
-#include "vg_cp_shm.h"
+#include "vgw_cp_shm.h"
 #include "upstream.hpp"
 
 #include <cstdint>
@@ -8,7 +8,7 @@
 #include <string>
 #include <vector>
 
-namespace vgm {
+namespace vgw {
 namespace control {
 
 struct CpShmSeed {
@@ -17,7 +17,7 @@ struct CpShmSeed {
 };
 
 /**
- * POSIX SHM view of vg_cp_shm. Control plane publishes by writing the block
+ * POSIX SHM view of vgw_cp_shm. Control plane publishes by writing the block
  * and bumping version; data plane polls and applies into UpstreamTable.
  */
 class CpShm {
@@ -42,24 +42,24 @@ public:
     void publish(const CpShmSeed& seed);
 
     uint32_t last_applied_version() const { return last_applied_; }
-    vg_cp_shm* raw() { return hdr_; }
-    const vg_cp_shm* raw() const { return hdr_; }
+    vgw_cp_shm* raw() { return hdr_; }
+    const vgw_cp_shm* raw() const { return hdr_; }
     const std::string& name() const { return name_; }
 
     /** Remove a POSIX SHM object by name (tests / cleanup). */
     static void unlink_name(const std::string& name);
 
 private:
-    CpShm(std::string name, int fd, vg_cp_shm* hdr);
+    CpShm(std::string name, int fd, vgw_cp_shm* hdr);
 
     void write_seed_unlocked(const CpShmSeed& seed, uint32_t version);
 
     std::string name_;
     int fd_ = -1;
-    vg_cp_shm* hdr_ = nullptr;
+    vgw_cp_shm* hdr_ = nullptr;
     uint32_t last_applied_ = 0;
 };
 
 }  // namespace control
-}  // namespace vgm
+}  // namespace vgw
 

@@ -1,7 +1,7 @@
-#include "dpdk_netif.hpp"
+#include "dpdk/netif.hpp"
 
 #include "base/util.hpp"
-#include "config.hpp"
+#include "dpdk/config.hpp"
 
 #include <cassert>
 #include <cstdio>
@@ -18,7 +18,7 @@
 #include <rte_mbuf.h>
 #include <rte_mempool.h>
 
-namespace vgm {
+namespace vgw {
 namespace dpdk {
 
 struct rte_mempool* DPDK_mempool = nullptr;
@@ -197,11 +197,11 @@ DpdkNetif::~DpdkNetif() {
 void DpdkNetif::init(uint16_t port, uint16_t ring_size) {
     port_id_ = port;
     const uint16_t ring_cap =
-        ring_size > 0 ? ring_size : config::VDEV_rx_ring_num;
+        ring_size > 0 ? ring_size : config::IO_RING_SIZE;
     rx_ring_ = make_ring<rte_mbuf>(util::RX_RING_NAME(port).c_str(), ring_cap,
-                                   config::VDEV_rx_ring_mode);
+                                   config::IO_RING_FLAGS);
     tx_ring_ = make_ring<rte_mbuf>(util::TX_RING_NAME(port).c_str(), ring_cap,
-                                   config::VDEV_tx_ring_mode);
+                                   config::IO_RING_FLAGS);
 }
 
 void DpdkNetif::free_burst(rte_mbuf** pkts, unsigned n) {
@@ -220,7 +220,7 @@ unsigned DpdkNetif::send_burst(rte_mbuf** pkts, unsigned n) {
     while (sent < n) {
         unsigned en = tx_ring_->push_burst(pkts + sent, n - sent);
         if (en == 0) {
-            usleep(config::VDEV_tx_sleep);
+            usleep(config::IO_TX_RING_FULL_SLEEP_US);
             continue;
         }
         sent += en;
@@ -229,11 +229,11 @@ unsigned DpdkNetif::send_burst(rte_mbuf** pkts, unsigned n) {
 }
 
 void DpdkNetif::nic_recv() {
-    rte_mbuf* mbufs[config::VDEV_rx_burst_num];
+    rte_mbuf* mbufs[config::IO_RX_BURST];
 
     for (uint16_t q = 0; q < config::DPDK_rx_queue_num; ++q) {
         const uint16_t n =
-            dpdk::rx_burst(port_id_, q, mbufs, config::VDEV_rx_burst_num);
+            dpdk::rx_burst(port_id_, q, mbufs, config::IO_RX_BURST);
         if (n == 0) {
             continue;
         }
@@ -253,9 +253,9 @@ void DpdkNetif::nic_recv() {
 }
 
 void DpdkNetif::nic_send() {
-    rte_mbuf* mbufs[config::VDEV_tx_burst_num];
+    rte_mbuf* mbufs[config::IO_TX_BURST];
     const unsigned n =
-        tx_ring_->pop_burst(mbufs, config::VDEV_tx_burst_num);
+        tx_ring_->pop_burst(mbufs, config::IO_TX_BURST);
     if (n == 0) {
         return;
     }
@@ -318,12 +318,12 @@ void DpdkNetifManager::init(const IoOptions& opts) {
             rte_eal_remote_launch(DpdkNetif::run_send, netif, tx_id);
         }
 
-        char mac_addr[VGM_MAC_DUMP_LEN];
+        char mac_addr[VGW_MAC_DUMP_LEN];
         util::mac_dump(mac_addr, dpdk::DPDK_ether_addr[i]);
         printf("init port %d: %s\n", i, mac_addr);
 
         ++cnt;
-        if (cnt == config::VDEV_core_max_rxtx) {
+        if (cnt == config::IO_PORTS_PER_RXTX_LCORE_PAIR) {
             cnt = 0;
             rx_id = rte_get_next_lcore(tx_id, true, false);
             tx_id = rte_get_next_lcore(rx_id, true, false);
@@ -347,4 +347,4 @@ DpdkNetif* DpdkNetifManager::get_netif(int port) {
     return it->second;
 }
 
-}  // namespace vgm
+}  // namespace vgw

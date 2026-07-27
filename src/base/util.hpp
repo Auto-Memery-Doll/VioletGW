@@ -8,18 +8,18 @@
 #include <rte_ether.h>
 #include <string>
 
-namespace vgm {
+namespace vgw {
 namespace util {
 
-#define VGM_MAC_DUMP_LEN 30
+#define VGW_MAC_DUMP_LEN 30
 void mac_dump(char* str, const rte_ether_addr& addr);
 
 inline std::string TX_RING_NAME(int port) {
-    return std::string("vgm_tx_ring_") + std::to_string(port);
+    return std::string("vgw_tx_ring_") + std::to_string(port);
 }
 
 inline std::string RX_RING_NAME(int port) {
-    return std::string("vgm_rx_ring_") + std::to_string(port);
+    return std::string("vgw_rx_ring_") + std::to_string(port);
 }
 
 class RandomGenerator : public base::Singletion<RandomGenerator> {
@@ -45,12 +45,12 @@ inline int generate_random(int begin, int end) {
 uint32_t crc32(const std::string& data);
 uint32_t fnv(const std::string& data);
 
-inline vgm_clock_t now() {
+inline vgw_clock_t now() {
     return std::chrono::high_resolution_clock::now();
 }
 
-std::string clock_to_str(const vgm_clock_t& tp);
+std::string clock_to_str(const vgw_clock_t& tp);
 
 }  // namespace util
-}  // namespace vgm
+}  // namespace vgw
 

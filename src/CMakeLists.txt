@@ -1,6 +1,7 @@
 set(SRC ${CMAKE_SOURCE_DIR}/src)
 
 add_subdirectory(${SRC}/base ${BUILD_DIR}/Base)
+add_subdirectory(${SRC}/dpdk ${BUILD_DIR}/Dpdk)
 
 add_library(packet packet.cpp)
 target_include_directories(packet PUBLIC ${CMAKE_SOURCE_DIR}/src)
@@ -24,10 +25,9 @@ if(LIBRT)
     target_link_libraries(control PUBLIC ${LIBRT})
 endif()
 
-set(FLOW_GW_SOURCES
-    main.cpp
-    dpdk_netif.cpp
-)
+add_library(vgw_core vgw.cpp)
+target_include_directories(vgw_core PUBLIC ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(vgw_core PUBLIC base vgw_dpdk_io packet session forward upstream control)
 
-add_executable(flow_gw ${FLOW_GW_SOURCES})
-target_link_libraries(flow_gw base packet session forward upstream control)
+add_executable(vgw main.cpp)
+target_link_libraries(vgw vgw_core)

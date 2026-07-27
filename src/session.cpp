@@ -2,7 +2,7 @@
 
 #include <algorithm>
 
-namespace vgm {
+namespace vgw {
 namespace session {
 
 SessionTable::SessionTable(uint32_t gateway_ip_be,
@@ -131,4 +131,4 @@ size_t SessionTable::expire(uint64_t now_ms) {
 }
 
 }  // namespace session
-}  // namespace vgm
+}  // namespace vgw

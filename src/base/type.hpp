@@ -6,16 +6,16 @@
 #include <mutex>
 #include <thread>
 
-extern "C" {
+// DPDK headers manage their own C++ linkage. Do not wrap them in an outer
+// extern "C" — that breaks DPDK 25.x bitops C++ overloads (rte_bitops.h).
 #include <generic/rte_spinlock.h>
 #include <rte_ether.h>
-}
 
-namespace vgm {
+namespace vgw {
 
-using vgm_mutex_t = std::mutex;
-using vgm_cond_t = std::condition_variable;
-using vgm_thread_t = std::thread;
+using vgw_mutex_t = std::mutex;
+using vgw_cond_t = std::condition_variable;
+using vgw_thread_t = std::thread;
 
 using mac_addr_t = struct rte_ether_addr;
 using spinlock_t = rte_spinlock_t;
@@ -26,12 +26,12 @@ using timeval_us = uint32_t;
 using timeval_min = uint32_t;
 using timeval_h = uint32_t;
 
-using vgm_clock_t = std::chrono::time_point<std::chrono::high_resolution_clock>;
-using vgm_duration_t = std::chrono::duration<uint32_t>;
+using vgw_clock_t = std::chrono::time_point<std::chrono::high_resolution_clock>;
+using vgw_duration_t = std::chrono::duration<uint32_t>;
 
-using vgm_hash_fnv_t = uint32_t;
-using vgm_hash_crc32_t = uint32_t;
-using vgm_hash_std_t = uint32_t;
+using vgw_hash_fnv_t = uint32_t;
+using vgw_hash_crc32_t = uint32_t;
+using vgw_hash_std_t = uint32_t;
 
-}  // namespace vgm
+}  // namespace vgw
 

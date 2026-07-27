@@ -3,10 +3,10 @@
 #include <gtest/gtest.h>
 #include <rte_ip.h>
 
-using vgm::session::FlowKey;
-using vgm::upstream::BalancePolicy;
-using vgm::upstream::UpstreamEndpoint;
-using vgm::upstream::UpstreamTable;
+using vgw::session::FlowKey;
+using vgw::upstream::BalancePolicy;
+using vgw::upstream::UpstreamEndpoint;
+using vgw::upstream::UpstreamTable;
 
 namespace {
 

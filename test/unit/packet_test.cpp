@@ -8,11 +8,11 @@
 #include <rte_ip.h>
 #include <rte_udp.h>
 
-using vgm::packet::ParseStatus;
-using vgm::packet::PacketView;
-using vgm::packet::parse_udp_ipv4;
-using vgm::packet::refresh_ipv4_checksum;
-using vgm::packet::refresh_udp_checksum;
+using vgw::packet::ParseStatus;
+using vgw::packet::PacketView;
+using vgw::packet::parse_udp_ipv4;
+using vgw::packet::refresh_ipv4_checksum;
+using vgw::packet::refresh_udp_checksum;
 
 namespace {
 

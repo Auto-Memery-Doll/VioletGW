@@ -6,7 +6,7 @@
 #include <rte_mbuf.h>
 #include <rte_udp.h>
 
-namespace vgm {
+namespace vgw {
 namespace packet {
 
 enum class ParseStatus : uint8_t {
@@ -54,5 +54,5 @@ void refresh_udp_checksum(const rte_ipv4_hdr* ip, rte_udp_hdr* udp);
 inline void clear_udp_checksum(rte_udp_hdr* udp) { udp->dgram_cksum = 0; }
 
 }  // namespace packet
-}  // namespace vgm
+}  // namespace vgw
 

@@ -8,7 +8,7 @@ T& operator=(T&&) = delete
 T(const T&) = delete;       \
 T& operator=(const T&) = delete
 
-namespace vgm {
+namespace vgw {
 namespace base {
 
 class noncopyable {
@@ -20,4 +20,4 @@ public:
 };
 
 }   // base
-}   // vgm
+}   // vgw

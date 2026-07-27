@@ -8,7 +8,7 @@
 #include <rte_ether.h>
 #include <rte_mbuf.h>
 
-namespace vgm {
+namespace vgw {
 namespace forward {
 
 struct Upstream {
@@ -83,5 +83,5 @@ private:
 };
 
 }  // namespace forward
-}  // namespace vgm
+}  // namespace vgw
 
