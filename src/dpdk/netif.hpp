@@ -18,7 +18,8 @@ extern struct rte_mempool* DPDK_mempool;
 extern struct rte_ether_addr DPDK_ether_addr[];
 
 /** mbuf_buf_size 0 = use config::DPDK_mempool_block_size */
-void init(int argc, char* argv[], unsigned mbuf_buf_size = 0);
+void init(int argc, char* argv[], unsigned mbuf_buf_size = 0,
+          uint32_t port_mask = 0);
 void clean();
 
 int rx_burst(uint16_t port_id, uint16_t queue_id, struct rte_mbuf** rx_pkts,

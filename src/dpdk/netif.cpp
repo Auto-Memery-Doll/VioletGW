@@ -55,16 +55,15 @@ static void init_tx_queue(int port, int queue_id) {
     }
 }
 
-static void port_init() {
+static void port_init(uint32_t port_mask) {
     uint16_t avail = rte_eth_dev_count_avail();
     if (avail == 0) {
         rte_exit(EXIT_FAILURE, "No supported eth found\n");
     }
 
     uint16_t port_it = 0;
-    uint32_t ports_mark = config::DPDK_vaild_port_marks;
     RTE_ETH_FOREACH_DEV(port_it) {
-        if ((ports_mark & (1u << port_it)) == 0) {
+        if ((port_mask & (1u << port_it)) == 0) {
             continue;
         }
 
@@ -114,8 +113,7 @@ static void port_init() {
     }
 }
 
-static int check_link_status() {
-    uint32_t port_mask = config::DPDK_vaild_port_marks;
+static int check_link_status(uint32_t port_mask) {
     uint16_t portid = 0;
     int link_up = 0;
 
@@ -144,7 +142,7 @@ static int check_link_status() {
     return link_up;
 }
 
-void init(int argc, char** argv, unsigned mbuf_buf_size) {
+void init(int argc, char** argv, unsigned mbuf_buf_size, uint32_t port_mask) {
     if (rte_eal_init(argc, argv) < 0) {
         rte_exit(EXIT_FAILURE, "rte_eal_init() failure.\n");
     }
@@ -161,8 +159,10 @@ void init(int argc, char** argv, unsigned mbuf_buf_size) {
     }
     DPDK_mempool = pool;
 
-    port_init();
-    while (!check_link_status()) {
+    const uint32_t effective_port_mask =
+        port_mask != 0 ? port_mask : config::DPDK_vaild_port_marks;
+    port_init(effective_port_mask);
+    while (!check_link_status(effective_port_mask)) {
         sleep(1);
     }
 }

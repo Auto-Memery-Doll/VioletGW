@@ -1,5 +1,9 @@
 #include "dpdk/datapath_config.hpp"
 #include "dpdk/datapath_flags.hpp"
+
+#include <cstdint>
+#include <limits>
+
 #include <gtest/gtest.h>
 
 TEST(DatapathConfigTest, DefaultsArePipeline) {
@@ -43,4 +47,15 @@ TEST(DatapathConfigTest, FromFlagsRtcDirect) {
     EXPECT_EQ(c.u.rtc.workers, 1);
     EXPECT_EQ(vgw::resolve_rtc_path(c.u.rtc, false),
               vgw::RtcResolvedPath::Direct);
+}
+
+TEST(DatapathConfigTest, FromFlagsRejectsRtcWorkersAboveUint16Max) {
+    EXPECT_EXIT(
+        {
+            FLAGS_datapath_mode = "rtc";
+            FLAGS_rtc_workers =
+                static_cast<uint32_t>(std::numeric_limits<uint16_t>::max()) + 1;
+            static_cast<void>(vgw::datapath_config_from_flags());
+        },
+        ::testing::ExitedWithCode(EXIT_FAILURE), "rtc_workers");
 }

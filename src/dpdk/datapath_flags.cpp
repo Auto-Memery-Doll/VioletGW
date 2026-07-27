@@ -1,6 +1,7 @@
 #include "dpdk/datapath_flags.hpp"
 
 #include <cstdlib>
+#include <limits>
 
 #include <rte_common.h>
 #include <rte_eal.h>
@@ -44,6 +45,12 @@ DatapathConfig datapath_config_from_flags() {
                      FLAGS_rtc_steer.c_str());
         }
         c.u.rtc.steer = steer;
+        if (FLAGS_rtc_workers > std::numeric_limits<uint16_t>::max()) {
+            rte_exit(EXIT_FAILURE,
+                     "--rtc_workers=%u exceeds the maximum supported value (%u)\n",
+                     FLAGS_rtc_workers,
+                     static_cast<unsigned>(std::numeric_limits<uint16_t>::max()));
+        }
         c.u.rtc.workers = static_cast<uint16_t>(FLAGS_rtc_workers);
         if (c.u.rtc.workers == 0) {
             c.u.rtc.workers = 1;

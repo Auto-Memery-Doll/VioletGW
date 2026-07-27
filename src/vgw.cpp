@@ -86,7 +86,7 @@ int VioletGW::init_pipeline(const char* shm_name) {
 int VioletGW::init(int argc, char** argv) {
     init_logging();
     const DatapathConfig cfg = datapath_config_from_flags();
-    dpdk::init(argc, argv);
+    dpdk::init(argc, argv, /*mbuf_buf_size=*/0, cfg.port_mask);
     dpdk_netif_mg()->init(cfg);
 
     netif_ = dpdk_netif_mg()->get_netif(cfg.worker_port);
