@@ -18,3 +18,6 @@ target_link_libraries(cp_shm_test PRIVATE control)
 
 vgw_add_gtest(vgw_test vgw_test.cpp)
 target_link_libraries(vgw_test PRIVATE vgw_core)
+
+vgw_add_gtest(datapath_config_test datapath_config_test.cpp)
+target_link_libraries(datapath_config_test PRIVATE vgw_dpdk_io)
