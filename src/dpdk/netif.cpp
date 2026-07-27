@@ -6,6 +6,7 @@
 #include <cassert>
 #include <cstdio>
 #include <cstring>
+#include <new>
 #include <unistd.h>
 
 #include <rte_common.h>
@@ -17,6 +18,7 @@
 #include <rte_lcore.h>
 #include <rte_mbuf.h>
 #include <rte_mempool.h>
+#include <spdlog/spdlog.h>
 
 namespace vgw {
 namespace dpdk {
@@ -191,17 +193,49 @@ rte_mbuf* get_mbuf() {
 }  // namespace dpdk
 
 DpdkNetif::~DpdkNetif() {
+    reset_state();
     printf("DpdkNetif port %u down.\n", port_id_);
 }
 
-void DpdkNetif::init(uint16_t port, uint16_t ring_size) {
+void DpdkNetif::reset_state() {
+    if (!state_active_) {
+        return;
+    }
+
+    if (mode_ == DatapathMode::Pipeline) {
+        state_.pipeline.~PipelineState();
+    } else {
+        state_.rtc.~RtcState();
+    }
+    state_active_ = false;
+}
+
+void DpdkNetif::init(uint16_t port, const DatapathConfig& cfg) {
+    reset_state();
+
+    mode_ = cfg.mode;
     port_id_ = port;
-    const uint16_t ring_cap =
-        ring_size > 0 ? ring_size : config::IO_RING_SIZE;
-    rx_ring_ = make_ring<rte_mbuf>(util::RX_RING_NAME(port).c_str(), ring_cap,
-                                   config::IO_RING_FLAGS);
-    tx_ring_ = make_ring<rte_mbuf>(util::TX_RING_NAME(port).c_str(), ring_cap,
-                                   config::IO_RING_FLAGS);
+    queue_id_ = 0;
+
+    if (mode_ == DatapathMode::Pipeline) {
+        new (&state_.pipeline) PipelineState();
+        state_active_ = true;
+        const uint16_t ring_cap = cfg.u.pipeline.ring_size > 0
+                                      ? cfg.u.pipeline.ring_size
+                                      : config::IO_RING_SIZE;
+        state_.pipeline.rx_ring =
+            make_ring<rte_mbuf>(util::RX_RING_NAME(port).c_str(), ring_cap,
+                                config::IO_RING_FLAGS);
+        state_.pipeline.tx_ring =
+            make_ring<rte_mbuf>(util::TX_RING_NAME(port).c_str(), ring_cap,
+                                config::IO_RING_FLAGS);
+        state_.pipeline.tx_ring_full_sleep_us =
+            cfg.u.pipeline.tx_ring_full_sleep_us;
+        return;
+    }
+
+    new (&state_.rtc) RtcState();
+    state_active_ = true;
 }
 
 void DpdkNetif::free_burst(rte_mbuf** pkts, unsigned n) {
@@ -212,20 +246,36 @@ void DpdkNetif::free_burst(rte_mbuf** pkts, unsigned n) {
 }
 
 unsigned DpdkNetif::recv_burst(rte_mbuf** pkts, unsigned n) {
-    return rx_ring_->pop_burst(pkts, n);
+    switch (mode_) {
+    case DatapathMode::Pipeline:
+        return state_.pipeline.rx_ring->pop_burst(pkts, n);
+    case DatapathMode::Rtc:
+        return static_cast<unsigned>(
+            dpdk::rx_burst(port_id_, queue_id_, pkts, static_cast<uint16_t>(n)));
+    }
+    return 0;
 }
 
 unsigned DpdkNetif::send_burst(rte_mbuf** pkts, unsigned n) {
-    unsigned sent = 0;
-    while (sent < n) {
-        unsigned en = tx_ring_->push_burst(pkts + sent, n - sent);
-        if (en == 0) {
-            usleep(config::IO_TX_RING_FULL_SLEEP_US);
-            continue;
+    switch (mode_) {
+    case DatapathMode::Pipeline: {
+        unsigned sent = 0;
+        while (sent < n) {
+            const unsigned en =
+                state_.pipeline.tx_ring->push_burst(pkts + sent, n - sent);
+            if (en == 0) {
+                usleep(state_.pipeline.tx_ring_full_sleep_us);
+                continue;
+            }
+            sent += en;
         }
-        sent += en;
+        return sent;
     }
-    return sent;
+    case DatapathMode::Rtc:
+        return static_cast<unsigned>(
+            dpdk::tx_burst(port_id_, queue_id_, pkts, static_cast<uint16_t>(n)));
+    }
+    return 0;
 }
 
 void DpdkNetif::nic_recv() {
@@ -241,7 +291,7 @@ void DpdkNetif::nic_recv() {
         unsigned enqueued = 0;
         while (enqueued < n) {
             unsigned got =
-                rx_ring_->push_burst(mbufs + enqueued, n - enqueued);
+                state_.pipeline.rx_ring->push_burst(mbufs + enqueued, n - enqueued);
             if (got == 0) {
                 // Ring full: drop remainder on this lcore (sync free).
                 free_burst(mbufs + enqueued, n - enqueued);
@@ -255,7 +305,7 @@ void DpdkNetif::nic_recv() {
 void DpdkNetif::nic_send() {
     rte_mbuf* mbufs[config::IO_TX_BURST];
     const unsigned n =
-        tx_ring_->pop_burst(mbufs, config::IO_TX_BURST);
+        state_.pipeline.tx_ring->pop_burst(mbufs, config::IO_TX_BURST);
     if (n == 0) {
         return;
     }
@@ -270,7 +320,7 @@ void DpdkNetif::nic_send() {
 
 int DpdkNetif::run_recv(void* arg) {
     auto* netif = static_cast<DpdkNetif*>(arg);
-    while (!netif->stop_) {
+    while (!netif->state_.pipeline.stop) {
         netif->nic_recv();
     }
     return 0;
@@ -278,7 +328,7 @@ int DpdkNetif::run_recv(void* arg) {
 
 int DpdkNetif::run_send(void* arg) {
     auto* netif = static_cast<DpdkNetif*>(arg);
-    while (!netif->stop_) {
+    while (!netif->state_.pipeline.stop) {
         netif->nic_send();
     }
     return 0;
@@ -291,15 +341,38 @@ DpdkNetifManager::~DpdkNetifManager() {
 }
 
 void DpdkNetifManager::init() {
-    init({true, true, 0});
+    init(datapath_config_defaults());
 }
 
 void DpdkNetifManager::init(const IoOptions& opts) {
+    DatapathConfig cfg = datapath_config_defaults();
+    cfg.u.pipeline.ring_size = opts.ring_size;
+    cfg.u.pipeline.launch_rx_lcore = opts.rx_lcore;
+    cfg.u.pipeline.launch_tx_lcore = opts.tx_lcore;
+    init(cfg);
+}
+
+void DpdkNetifManager::init(const DatapathConfig& cfg) {
     std::lock_guard<std::mutex> lock(mtx_);
 
-    uint32_t port_mask = config::DPDK_vaild_port_marks;
-    unsigned rx_id = rte_get_next_lcore(rte_lcore_id(), true, false);
-    unsigned tx_id = rte_get_next_lcore(rx_id, true, false);
+    cfg_ = cfg;
+    if (cfg_.mode == DatapathMode::Rtc &&
+        resolve_rtc_path(cfg_.u.rtc, /*hw_rss_usable=*/false) !=
+            RtcResolvedPath::Direct) {
+        SPDLOG_ERROR(
+            "RTC multi-worker paths are not available: P1/P2 not implemented; "
+            "use --rtc_workers=1");
+        rte_exit(EXIT_FAILURE,
+                 "P1/P2 not implemented; use --rtc_workers=1\n");
+    }
+
+    uint32_t port_mask = cfg_.port_mask;
+    unsigned rx_id = 0;
+    unsigned tx_id = 0;
+    if (cfg_.mode == DatapathMode::Pipeline) {
+        rx_id = rte_get_next_lcore(rte_lcore_id(), true, false);
+        tx_id = rte_get_next_lcore(rx_id, true, false);
+    }
     int cnt = 0;
 
     for (int i = 0; i < 32; ++i) {
@@ -308,13 +381,15 @@ void DpdkNetifManager::init(const IoOptions& opts) {
         }
 
         auto* netif = new DpdkNetif();
-        netif->init(static_cast<uint16_t>(i), opts.ring_size);
+        netif->init(static_cast<uint16_t>(i), cfg_);
         netifs_.insert({i, netif});
 
-        if (opts.rx_lcore) {
+        if (cfg_.mode == DatapathMode::Pipeline &&
+            cfg_.u.pipeline.launch_rx_lcore) {
             rte_eal_remote_launch(DpdkNetif::run_recv, netif, rx_id);
         }
-        if (opts.tx_lcore) {
+        if (cfg_.mode == DatapathMode::Pipeline &&
+            cfg_.u.pipeline.launch_tx_lcore) {
             rte_eal_remote_launch(DpdkNetif::run_send, netif, tx_id);
         }
 
@@ -322,11 +397,13 @@ void DpdkNetifManager::init(const IoOptions& opts) {
         util::mac_dump(mac_addr, dpdk::DPDK_ether_addr[i]);
         printf("init port %d: %s\n", i, mac_addr);
 
-        ++cnt;
-        if (cnt == config::IO_PORTS_PER_RXTX_LCORE_PAIR) {
-            cnt = 0;
-            rx_id = rte_get_next_lcore(tx_id, true, false);
-            tx_id = rte_get_next_lcore(rx_id, true, false);
+        if (cfg_.mode == DatapathMode::Pipeline) {
+            ++cnt;
+            if (cnt == config::IO_PORTS_PER_RXTX_LCORE_PAIR) {
+                cnt = 0;
+                rx_id = rte_get_next_lcore(tx_id, true, false);
+                tx_id = rte_get_next_lcore(rx_id, true, false);
+            }
         }
     }
 }
@@ -334,7 +411,9 @@ void DpdkNetifManager::init(const IoOptions& opts) {
 void DpdkNetifManager::stop() {
     std::lock_guard<std::mutex> lock(mtx_);
     for (auto& entry : netifs_) {
-        entry.second->stop_ = true;
+        if (entry.second->mode_ == DatapathMode::Pipeline) {
+            entry.second->state_.pipeline.stop = true;
+        }
     }
 }
 

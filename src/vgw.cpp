@@ -2,6 +2,7 @@
 
 #include "base/log.hpp"
 #include "config.hpp"
+#include "dpdk/datapath_flags.hpp"
 
 #include <chrono>
 #include <cstring>
@@ -84,12 +85,13 @@ int VioletGW::init_pipeline(const char* shm_name) {
 
 int VioletGW::init(int argc, char** argv) {
     init_logging();
+    const DatapathConfig cfg = datapath_config_from_flags();
     dpdk::init(argc, argv);
-    dpdk_netif_mg()->init();
+    dpdk_netif_mg()->init(cfg);
 
-    netif_ = dpdk_netif_mg()->get_netif(0);
+    netif_ = dpdk_netif_mg()->get_netif(cfg.worker_port);
     if (netif_ == nullptr) {
-        SPDLOG_ERROR("no DPDK netif for port 0");
+        SPDLOG_ERROR("no DPDK netif for port {}", cfg.worker_port);
         return 1;
     }
 

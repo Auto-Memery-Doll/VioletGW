@@ -2,6 +2,7 @@
 
 #include "base/ring.hpp"
 #include "base/singleton.hpp"
+#include "dpdk/datapath_config.hpp"
 #include <cstdint>
 #include <map>
 #include <memory>
@@ -47,7 +48,8 @@ public:
 
 private:
     DpdkNetif() = default;
-    void init(uint16_t port, uint16_t ring_size);
+    void init(uint16_t port, const DatapathConfig& cfg);
+    void reset_state();
 
     void nic_recv();
     void nic_send();
@@ -55,10 +57,30 @@ private:
     static int run_recv(void* arg);
     static int run_send(void* arg);
 
+    struct PipelineState {
+        Ring<rte_mbuf>::ptr rx_ring;
+        Ring<rte_mbuf>::ptr tx_ring;
+        bool stop = false;
+        int tx_ring_full_sleep_us = 0;
+    };
+
+    struct RtcState {
+        void* soft_rx_ring = nullptr;
+    };
+
+    union State {
+        PipelineState pipeline;
+        RtcState rtc;
+
+        State() {}
+        ~State() {}
+    };
+
+    DatapathMode mode_ = DatapathMode::Pipeline;
     uint16_t port_id_ = 0;
-    Ring<rte_mbuf>::ptr rx_ring_;
-    Ring<rte_mbuf>::ptr tx_ring_;
-    bool stop_ = false;
+    uint16_t queue_id_ = 0;
+    State state_;
+    bool state_active_ = false;
 };
 
 class DpdkNetifManager : public base::Singletion<DpdkNetifManager> {
@@ -76,6 +98,7 @@ public:
 
     void init();
     void init(const IoOptions& opts);
+    void init(const DatapathConfig& cfg);
     void stop();
     DpdkNetif* get_netif(int port);
 
@@ -84,6 +107,7 @@ private:
 
     std::map<int, DpdkNetif*> netifs_;
     std::mutex mtx_;
+    DatapathConfig cfg_{};
 };
 
 inline auto dpdk_netif_mg() -> DpdkNetifManager::ptr {
