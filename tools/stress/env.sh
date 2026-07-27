@@ -60,8 +60,13 @@ fi
 # --- Bench ---
 export STRESS_SECONDS="${STRESS_SECONDS:-30}"
 export STRESS_WARMUP="${STRESS_WARMUP:-5}"
-export STRESS_FLOWS="${STRESS_FLOWS:-1000}"
 export PKTGEN_RATE="${PKTGEN_RATE:-100}"
 export STRESS_OUT_DIR="${STRESS_OUT_DIR:-${STRESS_DIR}/out}"
 # Auto vfio-bind SUT+client NICs at start of run.sh (1=yes)
 export STRESS_BIND="${STRESS_BIND:-1}"
+
+# Space-separated: pipeline and/or rtc
+export STRESS_DATAPATH_MODES="${STRESS_DATAPATH_MODES:-pipeline rtc}"
+export VGW_LCORES_PIPELINE="${VGW_LCORES_PIPELINE:-0-2}"
+export VGW_LCORES_RTC="${VGW_LCORES_RTC:-0}"
+export PKTGEN_LCORES="${PKTGEN_LCORES:-3-4}"

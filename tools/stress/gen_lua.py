@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate one pktgen Lua case (C01–C08)."""
+"""Generate one pktgen Lua case (M01–M06: hot | flows)."""
 from __future__ import annotations
 
 import argparse
@@ -80,14 +80,13 @@ local offered_bps = sent_pps * fb * 8
 local received_bps = recv_pps * fb * 8
 
 print(string.format(
-  "PKTGEN_SUMMARY sut={sut} case={case_id} mode={mode} payload={payload} " ..
+  "PKTGEN_SUMMARY case={case_id} pattern={pattern} payload={payload} " ..
   "seconds=%d warmup=%d flows={flows} " ..
   "client_sent=%d client_received=%d lost=%d loss_rate_pct=%.4f " ..
   "sent_pps=%.0f received_pps=%.0f offered_bps=%.0f received_bps=%.0f frame_bytes=%d",
   measure_sec, warmup_sec,
   tx, rx, lost, loss_pct, sent_pps, recv_pps, offered_bps, received_bps, fb))
 
--- Required: otherwise pktgen stays in the interactive CLI and never exits.
 pktgen.quit()
 """
 
@@ -97,7 +96,7 @@ pktgen.range.src_port(port, "inc", 0)
 pktgen.range.src_port(port, "min", {sport})
 pktgen.range.src_port(port, "max", {sport})"""
 
-SRC_PORT_RANGE = """\
+SRC_PORT_FLOWS = """\
 pktgen.range.src_port(port, "start", {sport_min})
 pktgen.range.src_port(port, "inc", 1)
 pktgen.range.src_port(port, "min", {sport_min})
@@ -108,30 +107,27 @@ def frame_size(payload: int) -> int:
     return 14 + 20 + 8 + payload
 
 
-def src_port_block(mode: str, flows: int) -> str:
+def src_port_block(pattern: str, flows: int) -> str:
     base = 4000
-    newflow_base = 50000
-    if mode == "hot":
+    if pattern == "hot":
         return SRC_PORT_HOT.format(sport=base)
-    if mode in ("multi", "bidir"):
-        return SRC_PORT_RANGE.format(sport_min=base, sport_max=base + flows - 1)
-    if mode == "newflow":
-        span = min(flows, 65530 - newflow_base + 1)
-        return SRC_PORT_RANGE.format(
-            sport_min=newflow_base, sport_max=newflow_base + span - 1
+    if pattern == "flows":
+        if flows < 1:
+            raise ValueError("flows must be >= 1")
+        return SRC_PORT_FLOWS.format(
+            sport_min=base, sport_max=base + flows - 1
         )
-    raise ValueError(f"unknown mode {mode}")
+    raise ValueError(f"unknown pattern {pattern}")
 
 
 def main() -> int:
     p = argparse.ArgumentParser()
-    p.add_argument("--sut", required=True)
     p.add_argument("--case", required=True)
-    p.add_argument("--mode", required=True)
+    p.add_argument("--pattern", required=True, choices=("hot", "flows"))
     p.add_argument("--payload", type=int, required=True)
     p.add_argument("--seconds", type=int, default=30)
     p.add_argument("--warmup", type=int, default=5)
-    p.add_argument("--flows", type=int, default=1000)
+    p.add_argument("--flows", type=int, default=1)
     p.add_argument("--rate", type=int, default=100)
     p.add_argument("--src-ip", default="10.0.0.1")
     p.add_argument("--dst-ip", default="192.168.1.100")
@@ -151,10 +147,9 @@ def main() -> int:
         dst_port=args.dst_port,
         src_mac=args.src_mac,
         dst_mac=args.dst_mac,
-        src_port_range=src_port_block(args.mode, args.flows),
-        sut=args.sut,
+        src_port_range=src_port_block(args.pattern, args.flows),
         case_id=args.case,
-        mode=args.mode,
+        pattern=args.pattern,
         payload=args.payload,
         flows=args.flows,
     )
