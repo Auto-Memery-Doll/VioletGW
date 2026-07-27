@@ -268,7 +268,7 @@ P0 unblocks structure; P1/P2 need a decision on `SessionTable` thread safety bef
 | `--rtc_steer` | `auto` | `auto` \| `hw_rss` \| `soft_rr` (ignored when `rtc_workers==1`) |
 | `--rtc_workers` | `1` | `1` ⇒ direct RTC, no distributor |
 | `--rtc_dist_ring_size` | `IO_RING_SIZE` or dedicated default | SoftRr only |
-| `--rtc_tx_lock` | `auto` | SoftRr single-TXQ: spinlock |
+| `--rtc_tx_lock` | `auto` | **P2 planned** — SoftRr single-TXQ spinlock; not implemented in P0 |
 
 ### argv vs EAL
 

@@ -102,8 +102,8 @@ gflags 可写在命令行任意位置；EAL 选项（如 `-l`）在 gflags 被�
 
 ### Pipeline 路径（默认）
 
-1. **RX lcore**：`DpdkNetif::nic_recv()` 从 NIC 收包，`push_burst` 进 `rx_ring_`；ring 满则本核直接 `free` 丢包
-2. **Worker**：从 RX ring 取包，做 L4 转发 / 会话 / 选上游，再推进 `tx_ring_`
+1. **RX lcore**：`DpdkNetif::nic_recv()` 从 NIC 收包，`push_burst` 进 `state_.pipeline.rx_ring`；ring 满则本核直接 `free` 丢包
+2. **Worker**：从 RX ring 取包，做 L4 转发 / 会话 / 选上游，再推进 `state_.pipeline.tx_ring`
 3. **TX lcore**：`DpdkNetif::nic_send()` 从 TX ring 取包，`tx_burst` 发往网卡
 
 相关配置在 `src/dpdk/config.hpp`（`IO_RX_BURST` / `IO_TX_BURST` / `IO_RING_SIZE` 等），lcore 启动在 `DpdkNetifManager::init()`。Pipeline 专用 gflags：`--io_ring_size`、`--io_rx_lcore`、`--io_tx_lcore`、`--io_tx_ring_full_sleep_us`。
