@@ -1,4 +1,5 @@
 #include "dpdk/datapath_config.hpp"
+#include "dpdk/datapath_flags.hpp"
 #include <gtest/gtest.h>
 
 TEST(DatapathConfigTest, DefaultsArePipeline) {
@@ -31,4 +32,15 @@ TEST(DatapathConfigTest, ParseModeAndSteer) {
     vgw::RtcSteer s{};
     ASSERT_TRUE(vgw::parse_rtc_steer("soft_rr", &s));
     EXPECT_EQ(s, vgw::RtcSteer::SoftRr);
+}
+
+TEST(DatapathConfigTest, FromFlagsRtcDirect) {
+    FLAGS_datapath_mode = "rtc";
+    FLAGS_rtc_workers = 1;
+    FLAGS_rtc_steer = "soft_rr";
+    auto c = vgw::datapath_config_from_flags();
+    EXPECT_EQ(c.mode, vgw::DatapathMode::Rtc);
+    EXPECT_EQ(c.u.rtc.workers, 1);
+    EXPECT_EQ(vgw::resolve_rtc_path(c.u.rtc, false),
+              vgw::RtcResolvedPath::Direct);
 }

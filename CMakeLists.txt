@@ -4,6 +4,24 @@ project(VGW)
 
 include(FetchContent)
 
+# ---------------------------------------------------------------------------
+# gflags (datapath CLI) — fetch before global link_libraries
+# ---------------------------------------------------------------------------
+find_package(gflags QUIET)
+if(NOT gflags_FOUND)
+    FetchContent_Declare(
+        gflags
+        GIT_REPOSITORY https://github.com/gflags/gflags.git
+        GIT_TAG v2.2.2
+        GIT_SHALLOW TRUE
+    )
+    set(GFLAGS_BUILD_TESTING OFF CACHE BOOL "" FORCE)
+    set(GFLAGS_BUILD_gflags_LIB ON CACHE BOOL "" FORCE)
+    set(GFLAGS_INSTALL OFF CACHE BOOL "" FORCE)
+    set(CMAKE_POLICY_VERSION_MINIMUM 3.5)
+    FetchContent_MakeAvailable(gflags)
+endif()
+
 # Generate compile_commands.json for clangd / IDE indexing.
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
