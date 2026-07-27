@@ -1,4 +1,4 @@
-# flow_gateway 架构升级总结（2026-07）
+# VGW 架构升级总结（2026-07）
 
 本文档沉淀本次架构升级的目标、流程、模块划分与当前状态，便于后续开发与 onboarding。更细的设计决策见 `docs/superpowers/specs/` 下的分阶段 spec。
 
@@ -29,9 +29,9 @@ NIC RX → parse → session 查/建 → DNAT/SNAT + L2 改写 → TX
 | **P2 base** | 精简 `base/`；日志改为 spdlog；保留 ring/util/crc 等 | 已完成 |
 | **P3 数据面模块** | `packet` → `session` → `forward` 逐步落地 + gtest | 已完成 |
 | **P4 负载** | `UpstreamTable`（mod/rr，无锁 pick）；删除旧 `balance/` | 已完成 |
-| **P5 控制面** | POSIX SHM 版本化配置块 + `CpShm::poll_apply`；Go CLI `tools/fgcp` | 已完成 |
+| **P5 控制面** | POSIX SHM 版本化配置块 + `CpShm::poll_apply`；Go CLI `tools/vgwcp` | 已完成 |
 | **P6 验证** | `fwd_loop_smoke`（真 mbuf 正/回程）；21 个 gtest | 已完成 |
-| **P7 工程整理** | 命名空间 `fg` → `vgm`；`src/`/`test/` 目录扁平化；`#pragma once` | 已完成 |
+| **P7 工程整理** | 命名空间 `fg` → `vgw`；`src/`/`test/` 目录扁平化；`#pragma once` | 已完成 |
 
 ---
 
@@ -73,13 +73,13 @@ src/
   forward.hpp/cpp
   upstream.hpp/cpp
   cp_shm.hpp/cpp
-  vg_cp_shm.h        # 控制面 C ABI（Go cgo 可复用）
+  vgw_cp_shm.h        # 控制面 C ABI（Go cgo 可复用）
   config.hpp           # DPDK / lab 默认 VIP、upstream 等
   dpdk_netif.hpp/cpp
   main.cpp
 ```
 
-- 命名空间：**`vgm`**（`vgm::packet`、`vgm::session`、`vgm::config` 等）
+- 命名空间：**`vgw`**（`vgw::packet`、`vgw::session`、`vgw::config` 等）
 - 头文件：**`#pragma once`**
 
 ### 4.2 `test/`
@@ -96,7 +96,7 @@ test/
 ```
 
 - 单元测试：**GoogleTest**，`ctest -L unit`（21 项）
-- CMake 辅助：`vgm_add_gtest`
+- CMake 辅助：`vgw_add_gtest`
 
 ---
 
@@ -159,9 +159,9 @@ Worker 循环（`main`）：`recv_burst` → `Forwarder::handle` → `send_burst
 - **数据面不做心跳**；upstream 健康由未来 Go 控制面维护后写入 SHM
 - **热路径不读 SHM**；仅后台轮询 `poll_apply` 写入 `UpstreamTable`
 
-### 6.2 SHM 布局（`vg_cp_shm.h`）
+### 6.2 SHM 布局（`vgw_cp_shm.h`）
 
-- POSIX 名默认：`/flow_gateway_cp`
+- POSIX 名默认：`/vgw_cp`
 - 字段：`magic`、`version`（最后 bump）、`policy`、`count`、`endpoints[]`（最多 64）
 - 写端：填完 endpoints + policy 后 **递增 version**
 - 读端：`version` 变化则拷贝并 `UpstreamTable::set` / `set_policy`
@@ -169,11 +169,11 @@ Worker 循环（`main`）：`recv_burst` → `Forwarder::handle` → `send_burst
 ### 6.3 Go 写端
 
 ```bash
-cd tools/fgcp && go build -o fgcp .
-./fgcp -policy mod -upstream 10.1.0.2:53 -upstream 10.1.0.3:53
+cd tools/vgwcp && go build -o vgwcp .
+./vgwcp -policy mod -upstream 10.1.0.2:53 -upstream 10.1.0.3:53
 ```
 
-运行中的 `flow_gw` 约每秒 `poll_apply` 一次（见 `config.hpp` 中 `CP_POLL_INTERVAL_MS`）。
+运行中的 `vgw` 约每秒 `poll_apply` 一次（见 `config.hpp` 中 `CP_POLL_INTERVAL_MS`）。
 
 ---
 
@@ -190,19 +190,15 @@ ctest --test-dir build -L unit          # 21 个单元测试
 
 ### 7.1 压测（pktgen 统一客户端）
 
-fg 与 nginx 共用 **DPDK pktgen** + veth 实验室拓扑（地址与 `test/dpdk/mbuf_fixture.hpp` 一致）：
+**DPDK pktgen** 打物理 NIC（ens34=vgw，ens35=kernel echo，ens36=pktgen）：
 
 ```bash
-sudo apt install meson ninja-build libbsd-dev liblua5.4-dev libpcap-dev git
-./tools/stress/build_pktgen.sh   # pktgen-23.10.2 for apt DPDK 23.11
-./tools/stress/build_nginx.sh   # nginx 对比时需要
-
-sudo -E PKTGEN_SUT=nginx ./tools/stress/run_pktgen_bench.sh
-sudo -E PKTGEN_SUT=fg FG_BIN=./build/bin/flow_gw ./tools/stress/run_pktgen_bench.sh
-python3 tools/stress/compare_pktgen_results.py
+./tools/stress/build.sh
+cmake --build build --target vgw
+sudo -E ./tools/stress/run.sh
 ```
 
-设计说明：[pktgen-unified-bench-design.md](superpowers/specs/2026-07-25-pktgen-unified-bench-design.md)
+说明：[tools/stress/README.md](../tools/stress/README.md)
 
 ---
 
@@ -210,9 +206,9 @@ python3 tools/stress/compare_pktgen_results.py
 
 | 项 | 说明 |
 |----|------|
-| 全链路 DPDK I/O 生产化 | `flow_gw` + 物理 NIC / 多队列 RSS（WSL 上已用 pktgen + net_tap 联调） |
+| 全链路 DPDK I/O 生产化 | `vgw` + 物理 NIC / 多队列 RSS（WSL 上已用 pktgen + net_tap 联调） |
 | VIP/MAC 进 SHM | 仍在 `config.hpp` 常量 |
-| Go 控制面服务化 | 目前为 `fgcp` CLI，无 RPC/常驻进程 |
+| Go 控制面服务化 | 目前为 `vgwcp` CLI，无 RPC/常驻进程 |
 | 健康检查 | 由 Go CP 实现，结果反映到 SHM upstream 列表 |
 | 多队列 RSS / 多 VIP | 未做 |
 | 一致性哈希 / 权重 | 可扩展 `BalancePolicy`，共用同一节点快照 |
@@ -225,7 +221,7 @@ python3 tools/stress/compare_pktgen_results.py
 |------|------|
 | [upstream-table-worker-design.md](superpowers/specs/2026-07-24-upstream-table-worker-design.md) | UpstreamTable + worker |
 | [shm-control-plane-design.md](superpowers/specs/2026-07-24-shm-control-plane-design.md) | 删除 balance + SHM |
-| [fwd-loop-and-fgcp-design.md](superpowers/specs/2026-07-24-fwd-loop-and-fgcp-design.md) | smoke + Go 写端 |
+| [fwd-loop-and-vgwcp-design.md](superpowers/specs/2026-07-24-fwd-loop-and-vgwcp-design.md) | smoke + Go 写端 |
 | [wsl-dpdk-env-design.md](superpowers/specs/2026-07-24-wsl-dpdk-env-design.md) | WSL2 DPDK 环境 |
 | [pktgen-unified-bench-design.md](superpowers/specs/2026-07-25-pktgen-unified-bench-design.md) | pktgen 压测（fg / nginx） |
 
