@@ -46,3 +46,6 @@ tools/ebpf/*.skel.h
 tools/ebpf/vmlinux.h
 tools/ebpf/rtc_io
 tools/ebpf/pipeline_io
+
+__pycache__/
+*.pyc

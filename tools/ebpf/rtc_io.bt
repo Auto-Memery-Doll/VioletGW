@@ -1,0 +1,64 @@
+#!/usr/bin/env bpftrace
+/*
+ * RTC NIC I/O observe: uretprobe DpdkNetif::recv_burst / send_burst.
+ * Run from repo root:
+ *   sudo bpftrace tools/ebpf/rtc_io.bt -p $(pgrep -n vgw)
+ */
+
+BEGIN
+{
+  @rx = 0;
+  @tx = 0;
+  @rx_calls = 0;
+  @tx_calls = 0;
+  @prev_rx = 0;
+  @prev_tx = 0;
+  @start_ns = nsecs;
+  printf("[rtc] attached (recv_burst/send_burst); Ctrl-C to stop\n");
+}
+
+uretprobe:build/bin/Src/vgw:_ZN3vgw9DpdkNetif10recv_burstEPP8rte_mbufj
+{
+  if (retval > 0) {
+    @rx += retval;
+    @rx_calls += 1;
+  }
+}
+
+uretprobe:build/bin/Src/vgw:_ZN3vgw9DpdkNetif10send_burstEPP8rte_mbufj
+{
+  if (retval > 0) {
+    @tx += retval;
+    @tx_calls += 1;
+  }
+}
+
+interval:s:1
+{
+  $rx = @rx;
+  $tx = @tx;
+  $rx_pps = $rx - @prev_rx;
+  $tx_pps = $tx - @prev_tx;
+  printf("[rtc] rx=%lu tx=%lu rx_pps=%lu tx_pps=%lu\n",
+         $rx, $tx, $rx_pps, $tx_pps);
+  @prev_rx = $rx;
+  @prev_tx = $tx;
+}
+
+END
+{
+  $elapsed_s = (nsecs - @start_ns) / 1000000000;
+  if ($elapsed_s == 0) {
+    $elapsed_s = 1;
+  }
+  printf("[rtc] done elapsed_s=%llu rx=%lu tx=%lu avg_rx_pps=%llu avg_tx_pps=%llu rx_calls=%lu tx_calls=%lu\n",
+         $elapsed_s, @rx, @tx, @rx / $elapsed_s, @tx / $elapsed_s,
+         @rx_calls, @tx_calls);
+  clear(@rx);
+  clear(@tx);
+  clear(@rx_calls);
+  clear(@tx_calls);
+  clear(@prev_rx);
+  clear(@prev_tx);
+  clear(@start_ns);
+}
