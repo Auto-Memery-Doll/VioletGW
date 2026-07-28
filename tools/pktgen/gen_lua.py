@@ -141,7 +141,7 @@ def main() -> int:
     p.add_argument("--seconds", type=int, default=30)
     p.add_argument("--warmup", type=int, default=5)
     p.add_argument("--flows", type=int, default=1)
-    p.add_argument("--rate", type=int, default=100)
+    p.add_argument("--rate", type=float, default=100.0)
     p.add_argument("--src-ip", default="10.0.0.1")
     p.add_argument("--dst-ip", default="192.168.1.100")
     p.add_argument("--dst-port", type=int, default=53)
@@ -154,7 +154,7 @@ def main() -> int:
         measure_sec=args.seconds,
         warmup_sec=args.warmup,
         frame_size=frame_size(args.payload),
-        rate_pct=args.rate,
+        rate_pct=f"{args.rate:.6g}",
         dst_ip=args.dst_ip,
         src_ip=args.src_ip,
         dst_port=args.dst_port,
