@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Bind / unbind stress NICs with vfio-pci (ens33 protected).
 #
-#   sudo ./setup_nics.sh status|bind|unbind
+#   sudo ./setup_nics.sh status|bind|bind-sut|unbind
 set -euo pipefail
 
 DIR="$(cd "$(dirname "$0")" && pwd)"
@@ -27,15 +27,19 @@ case "${ACTION}" in
     run_tool status
     ;;
   bind)
-    echo "bind: ${DPDK_BIND_IFACES}  (keep ${MGMT_IFACE} + ${UPSTREAM_IFACE} on kernel)" >&2
+    echo "bind: ${DPDK_BIND_ARGS}  (keep ${MGMT_IFACE} on kernel)" >&2
     # shellcheck disable=SC2086
-    run_tool setup ${DPDK_BIND_IFACES}
+    run_tool setup ${DPDK_BIND_ARGS}
+    ;;
+  bind-sut)
+    echo "bind-sut: ${SUT_PCI} only (${SUT_IFACE}=vgw; kernel client on ${KERNEL_CLIENT_IFACE})" >&2
+    run_tool setup "${SUT_PCI}"
     ;;
   unbind)
     run_tool unbind
     ;;
   *)
-    echo "Usage: $0 status|bind|unbind" >&2
+    echo "Usage: $0 status|bind|bind-sut|unbind" >&2
     exit 1
     ;;
 esac

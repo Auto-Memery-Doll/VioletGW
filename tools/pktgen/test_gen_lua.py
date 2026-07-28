@@ -63,6 +63,11 @@ class GenLuaTest(unittest.TestCase):
             self.assertIn("flows=1", text)
             self.assertNotIn("mode=", text)
             self.assertNotIn("sut=", text)
+            head = text.split("pktgen.screen", 1)[0]
+            self.assertNotRegex(head, r'(?m)^\s*require\s*[("\']Pktgen')
+            self.assertIn("pktgen.screen", text)
+            self.assertIn("portStats(p)", text)
+            self.assertIn("row.curr", text)
 
 
 if __name__ == "__main__":

@@ -1,25 +1,33 @@
 #!/usr/bin/env bash
-# PCI stress: vgw (ens34) + pktgen (ens36) + kernel echo (ens35).
+# PCI stress: vgw (ens192) + pktgen client (ens256). Upstream = client (no Python echo).
 #
 #   sudo -E ./run.sh
 #
-# SSH must stay on ens33. VMware: put ens34/35/36 on the same (promiscuous) LAN.
+# SSH must stay on ens33. VMware: put ens192/ens256 on the same (promiscuous) LAN.
 set -euo pipefail
 
 DIR="$(cd "$(dirname "$0")" && pwd)"
 # shellcheck source=env.sh
 source "${DIR}/env.sh"
-# shellcheck source=csv_parse.sh
-source "${DIR}/csv_parse.sh"
+# shellcheck source=results/csv_parse.sh
+source "${DIR}/results/csv_parse.sh"
 
 OUT_DIR="${STRESS_OUT_DIR}"
 LUA_DIR="${OUT_DIR}/lua"
-ECHO_PID=""
 VGW_PID=""
 BOUND_BY_US=0
 
-log() { printf '[stress] %s\n' "$*" >&2; }
-die() { printf '[stress][ERROR] %s\n' "$*" >&2; exit 1; }
+log() { printf '[pktgen] %s\n' "$*" >&2; }
+die() { printf '[pktgen][ERROR] %s\n' "$*" >&2; exit 1; }
+
+ensure_dpdk_idle() {
+  local pids
+  pids="$(pgrep -x vgw 2>/dev/null || true)"
+  pids="${pids} $(pgrep -f '/app/pktgen' 2>/dev/null || true)"
+  pids="$(echo "${pids}" | xargs)"
+  [[ -z "${pids}" ]] && return 0
+  die "DPDK already in use (pids: ${pids}). Stop manual vgw/pktgen first, e.g. sudo pkill vgw; sudo pkill -f app/pktgen"
+}
 
 [[ "${EUID}" -eq 0 ]] || die "need root, e.g. sudo -E $0"
 
@@ -31,45 +39,26 @@ stop_vgw() {
   fi
 }
 
-stop_services() {
-  if [[ -n "${ECHO_PID}" ]]; then
-    kill "${ECHO_PID}" 2>/dev/null || true
-    ECHO_PID=""
-  fi
-  stop_vgw
-}
-
 on_exit() {
-  stop_services
+  stop_vgw
 }
 trap on_exit EXIT
 
-prepare_upstream() {
-  local iface="${UPSTREAM_IFACE}"
-  [[ -d "/sys/class/net/${iface}" ]] || die "upstream iface ${iface} missing (keep it on kernel)"
-
-  ip link set "${iface}" down || true
-  ip link set "${iface}" address "${UPSTREAM_MAC}"
-  ip addr flush dev "${iface}" 2>/dev/null || true
-  ip addr add "${UPSTREAM_IP}/24" dev "${iface}"
-  ip link set "${iface}" up
-  log "upstream ${iface} ${UPSTREAM_IP} mac=${UPSTREAM_MAC}"
-
-  python3 "${DIR}/udp_echo.py" --bind "${UPSTREAM_IP}" --port "${UPSTREAM_PORT}" &
-  ECHO_PID=$!
-  sleep 0.3
-  kill -0 "${ECHO_PID}" 2>/dev/null || die "udp_echo failed to start"
-}
-
 maybe_bind() {
   if [[ "${STRESS_BIND}" != "1" ]]; then
-    log "STRESS_BIND=0 — assuming ${DPDK_BIND_IFACES} already vfio-bound"
+    log "STRESS_BIND=0 — assuming ${DPDK_BIND_ARGS} already vfio-bound"
     return
   fi
-  log "bind DPDK NICs: ${DPDK_BIND_IFACES} (mgmt=${MGMT_IFACE})"
+  log "bind DPDK NICs: ${DPDK_BIND_ARGS} (mgmt=${MGMT_IFACE})"
   # shellcheck disable=SC2086
   MGMT_IFACE="${MGMT_IFACE}" "${DIR}/setup_nics.sh" bind
   BOUND_BY_US=1
+}
+
+publish_upstream() {
+  [[ -x "${VGWCP_BIN}" ]] || die "vgwcp missing at ${VGWCP_BIN}"
+  log "upstream=${UPSTREAM_IP}:${UPSTREAM_PORT} (client backend)"
+  "${VGWCP_BIN}" -upstream "${UPSTREAM_IP}:${UPSTREAM_PORT}"
 }
 
 start_vgw() {
@@ -82,7 +71,13 @@ start_vgw() {
   esac
   [[ -x "${VGW_BIN}" ]] || die "vgw missing; cmake --build build --target vgw"
   log "SUT=vgw datapath_mode=${mode} pci=${SUT_PCI} lcores=${lcores}"
-  local -a cmd=("${VGW_BIN}" --datapath_mode="${mode}" -l "${lcores}" --file-prefix=vgw -a "${SUT_PCI}")
+  local -a cmd=(
+    "${VGW_BIN}"
+    --datapath_mode="${mode}"
+    -l "${lcores}"
+    --file-prefix=vgw
+    -a "${SUT_PCI}"
+  )
   if [[ "${mode}" == "rtc" ]]; then
     cmd+=(--rtc_workers=1)
   fi
@@ -90,6 +85,7 @@ start_vgw() {
   VGW_PID=$!
   sleep 2
   kill -0 "${VGW_PID}" 2>/dev/null || die "vgw exited early (mode=${mode})"
+  publish_upstream
 }
 
 run_one_case() {
@@ -100,9 +96,10 @@ run_one_case() {
   local payload="$5"
   local out="$6"
   local lcores="${PKTGEN_LCORES}"
+  local map="${PKTGEN_MAP}"
   local prefix="pg_vgw_pci"
   local lua="${LUA_DIR}/${datapath_mode}_${case_id}.lua"
-  local logf line pktgen_cmd
+  local logf line pktgen_cmd rc timeout_sec
 
   log "case ${case_id} datapath=${datapath_mode} pattern=${pattern} flows=${flows} payload=${payload}"
   python3 "${DIR}/gen_lua.py" --case "${case_id}" --pattern "${pattern}" \
@@ -112,17 +109,28 @@ run_one_case() {
     --src-mac "${CLIENT_MAC}" --dst-mac "${GW_MAC}" \
     -o "${lua}"
 
-  logf="$(mktemp)"
-  pktgen_cmd=$(printf '%q ' "${PKTGEN_BIN}" -l "${lcores}" --file-prefix="${prefix}" \
+  mkdir -p "${OUT_DIR}/logs"
+  logf="${OUT_DIR}/logs/${datapath_mode}_${case_id}.log"
+  timeout_sec="${PKTGEN_TIMEOUT_SEC}"
+  pktgen_cmd=$(printf '%q ' timeout --foreground "${timeout_sec}" \
+    "${PKTGEN_BIN}" -l "${lcores}" --file-prefix="${prefix}" \
     -a "${CLIENT_PCI}" \
-    -- -P -m "[1:1].0" -f "${lua}")
-  script -qefc "${pktgen_cmd}" /dev/null >"${logf}" 2>&1 || true
-  line="$(grep '^PKTGEN_SUMMARY' "${logf}" | tail -1 || true)"
-  rm -f "${logf}"
+    -- -P -m "${map}" -f "${lua}")
+  log "pktgen -l ${lcores} -m ${map} (timeout ${timeout_sec}s)"
+  set +e
+  script -qefc "${pktgen_cmd}" /dev/null >"${logf}" 2>&1
+  rc=$?
+  set -e
+  if [[ "${rc}" -eq 124 ]]; then
+    log "pktgen timed out after ${timeout_sec}s for ${datapath_mode}/${case_id} (see ${logf})"
+    return 1
+  fi
+  line="$(grep -o 'PKTGEN_SUMMARY.*' "${logf}" | tail -1 || true)"
   [[ -n "${line}" ]] || {
-    log "missing PKTGEN_SUMMARY for ${datapath_mode}/${case_id}"
+    log "missing PKTGEN_SUMMARY for ${datapath_mode}/${case_id} (see ${logf})"
     return 1
   }
+  line="$(printf '%s' "${line}" | tr -d '\r' | sed 's/frame_bytes=\([0-9][0-9]*\).*/frame_bytes=\1/')"
   append_csv_row "${out}" "${datapath_mode}" "${line}"
 }
 
@@ -130,7 +138,6 @@ run_matrix() {
   local out="${OUT_DIR}/results.csv"
   local failures=0
   local modes=(${STRESS_DATAPATH_MODES})
-  # case_id:pattern:flows:payload
   local cases=(
     "M01:hot:1:4"
     "M02:hot:1:1400"
@@ -144,8 +151,8 @@ run_matrix() {
   [[ -x "${PKTGEN_BIN}" ]] || die "pktgen missing at ${PKTGEN_BIN} (DEV_HOME=${DEV_HOME}); as violet: ${DIR}/build.sh"
 
   mkdir -p "${OUT_DIR}" "${LUA_DIR}"
+  ensure_dpdk_idle
   maybe_bind
-  prepare_upstream
 
   echo "timestamp,datapath_mode,case_id,pattern,flows,payload_bytes,seconds,warmup,client_sent,client_received,lost,loss_rate_pct,sent_pps,received_pps,offered_bps,received_bps,frame_bytes" >"${out}"
 
@@ -158,7 +165,6 @@ run_matrix() {
     stop_vgw
   done
 
-  stop_services
   log "results: ${out}"
   if [[ "${failures}" -gt 0 ]]; then
     die "${failures} case(s) missing PKTGEN_SUMMARY"

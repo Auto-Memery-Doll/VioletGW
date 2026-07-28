@@ -6,8 +6,8 @@ import argparse
 from pathlib import Path
 
 HEADER = """\
-package.path = package.path .. ";?.lua;test/?.lua;app/?.lua;../?.lua;scripts/?.lua"
-require "Pktgen"
+-- pktgen C bindings are already registered as global `pktgen`.
+-- Avoid loading Pktgen.lua helpers (needs pktgen source cwd).
 
 pktgen.screen("off")
 
@@ -17,11 +17,26 @@ local warmup_sec = {warmup_sec}
 local pkt_size = {frame_size}
 local rate_pct = {rate_pct}
 
-pktgen.set(port, "size", pkt_size)
-pktgen.set(port, "rate", rate_pct)
+local function port_pkts(p)
+  -- pktgen 26.x: portStats(portlist) returns table keyed by port id;
+  -- each entry has .curr.opackets / .curr.ipackets
+  local s = pktgen.portStats(p)
+  local row = s[0] or s[tonumber(p)]
+  local curr = row.curr
+  return curr.opackets, curr.ipackets
+end
+
 pktgen.set(port, "count", 0)
+pktgen.set(port, "rate", rate_pct)
+pktgen.set_type(port, "ipv4")
 pktgen.set_proto(port, "udp")
 pktgen.page("range")
+
+pktgen.range.ip_proto(port, "udp")
+pktgen.range.pkt_size(port, "start", pkt_size)
+pktgen.range.pkt_size(port, "min", pkt_size)
+pktgen.range.pkt_size(port, "max", pkt_size)
+pktgen.range.pkt_size(port, "inc", 0)
 
 pktgen.range.dst_ip(port, "start", "{dst_ip}")
 pktgen.range.dst_ip(port, "inc", "0.0.0.0")
@@ -57,18 +72,16 @@ pktgen.delay(warmup_sec * 1000)
 pktgen.stop(port)
 pktgen.delay(200)
 
-local base = pktgen.portStats(port, "port")[0]
-local base_tx = base.opackets
-local base_rx = base.ipackets
+local base_tx, base_rx = port_pkts(port)
 
 pktgen.start(port)
 pktgen.delay(measure_sec * 1000)
 pktgen.stop(port)
 pktgen.delay(200)
 
-local fin = pktgen.portStats(port, "port")[0]
-local tx = fin.opackets - base_tx
-local rx = fin.ipackets - base_rx
+local fin_tx, fin_rx = port_pkts(port)
+local tx = fin_tx - base_tx
+local rx = fin_rx - base_rx
 local lost = tx - rx
 if lost < 0 then lost = 0 end
 local loss_pct = 0.0

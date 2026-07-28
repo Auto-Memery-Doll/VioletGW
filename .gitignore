@@ -33,6 +33,7 @@
 *.app
 tools/vgwcp/vgwcp
 tools/vgwcp/vgmcp
+tools/pktgen/out/
 tools/stress/out/
 
 build/
@@ -41,3 +42,7 @@ compile_commands.json
 .dpdk_runtime/
 .vscode/
 .clangd
+tools/ebpf/*.skel.h
+tools/ebpf/vmlinux.h
+tools/ebpf/rtc_io
+tools/ebpf/pipeline_io
