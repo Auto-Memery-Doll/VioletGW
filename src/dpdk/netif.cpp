@@ -5,7 +5,7 @@
 
 #include <algorithm>
 #include <cassert>
-#include <cstdio>
+#include <cstdlib>
 #include <cstring>
 #include <limits>
 #include <new>
@@ -69,7 +69,7 @@ static void port_init(uint32_t port_mask) {
             continue;
         }
 
-        printf("Initializing port %u...\n", port_it);
+        SPDLOG_INFO("Initializing port {}...", port_it);
 
         struct rte_eth_dev_info dev_info;
         memset(&dev_info, 0, sizeof(dev_info));
@@ -110,8 +110,9 @@ static void port_init(uint32_t port_mask) {
         }
 
         rte_eth_promiscuous_enable(port_it);
-        printf("Port %u, MAC address: " RTE_ETHER_ADDR_PRT_FMT "\n\n", port_it,
-               RTE_ETHER_ADDR_BYTES(&DPDK_ether_addr[port_it]));
+        char mac_addr[VGW_MAC_DUMP_LEN];
+        util::mac_dump(mac_addr, DPDK_ether_addr[port_it]);
+        SPDLOG_INFO("Port {}, MAC address: {}", port_it, mac_addr);
     }
 }
 
@@ -119,7 +120,7 @@ static int check_link_status(uint32_t port_mask) {
     uint16_t portid = 0;
     int link_up = 0;
 
-    printf("\nChecking link status...\n");
+    SPDLOG_INFO("Checking link status...");
     RTE_ETH_FOREACH_DEV(portid) {
         if ((port_mask & (1u << portid)) == 0) {
             continue;
@@ -129,13 +130,13 @@ static int check_link_status(uint32_t port_mask) {
         memset(&link, 0, sizeof(link));
         int ret = rte_eth_link_get(portid, &link);
         if (ret < 0) {
-            printf("Port %u link get failed: err=%d\n", portid, ret);
+            SPDLOG_ERROR("Port {} link get failed: err={}", portid, ret);
             continue;
         }
 
         char link_status_text[RTE_ETH_LINK_MAX_STR_LEN];
         rte_eth_link_to_str(link_status_text, sizeof(link_status_text), &link);
-        printf("Port %u %s\n", portid, link_status_text);
+        SPDLOG_INFO("Port {} {}", portid, link_status_text);
 
         if (link.link_status) {
             link_up = 1;
@@ -164,8 +165,29 @@ void init(int argc, char** argv, unsigned mbuf_buf_size, uint32_t port_mask) {
     const uint32_t effective_port_mask =
         port_mask != 0 ? port_mask : config::DPDK_vaild_port_marks;
     port_init(effective_port_mask);
-    while (!check_link_status(effective_port_mask)) {
+
+    constexpr int kLinkCheckAttempts = 4;  // 1 immediate + 3 retries
+    bool link_ok = false;
+    for (int attempt = 1; attempt <= kLinkCheckAttempts; ++attempt) {
+        if (check_link_status(effective_port_mask) != 0) {
+            link_ok = true;
+            break;
+        }
+        if (attempt == kLinkCheckAttempts) {
+            break;
+        }
+        SPDLOG_WARN(
+            "link not ready on port_mask={:#x} (attempt {}/{}), retrying in 1s",
+            effective_port_mask, attempt, kLinkCheckAttempts);
         sleep(1);
+    }
+    if (!link_ok) {
+        SPDLOG_ERROR(
+            "no link up on enabled ports (port_mask={:#x}) after {} attempts",
+            effective_port_mask, kLinkCheckAttempts);
+        rte_exit(EXIT_FAILURE,
+                 "link check failed after %d attempts (port_mask=0x%x)\n",
+                 kLinkCheckAttempts, effective_port_mask);
     }
 }
 
@@ -187,7 +209,7 @@ int tx_burst(uint16_t port_id, uint16_t queue_id, struct rte_mbuf** tx_pkts,
 rte_mbuf* get_mbuf() {
     rte_mbuf* m = rte_pktmbuf_alloc(DPDK_mempool);
     if (m == nullptr) {
-        printf("rte_pktmbuf_alloc failed\n");
+        SPDLOG_ERROR("rte_pktmbuf_alloc failed");
     }
     return m;
 }
@@ -196,7 +218,7 @@ rte_mbuf* get_mbuf() {
 
 DpdkNetif::~DpdkNetif() {
     reset_state();
-    printf("DpdkNetif port %u down.\n", port_id_);
+    SPDLOG_INFO("DpdkNetif port {} down.", port_id_);
 }
 
 void DpdkNetif::reset_state() {
@@ -251,12 +273,12 @@ unsigned DpdkNetif::recv_burst(rte_mbuf** pkts, unsigned n) {
     switch (mode_) {
     case DatapathMode::Pipeline:
         return state_.pipeline.rx_ring->pop_burst(pkts, n);
-    case DatapathMode::Rtc:
+    case DatapathMode::Rtc: {
+        const uint16_t nb = static_cast<uint16_t>(std::min(
+            n, static_cast<unsigned>(std::numeric_limits<uint16_t>::max())));
         return static_cast<unsigned>(
-            dpdk::rx_burst(port_id_, queue_id_, pkts,
-                           static_cast<uint16_t>(std::min(
-                               n, static_cast<unsigned>(
-                                      std::numeric_limits<uint16_t>::max())))));
+            dpdk::rx_burst(port_id_, queue_id_, pkts, nb));
+        }
     }
     return 0;
 }
@@ -276,12 +298,12 @@ unsigned DpdkNetif::send_burst(rte_mbuf** pkts, unsigned n) {
         }
         return sent;
     }
-    case DatapathMode::Rtc:
+    case DatapathMode::Rtc: {
+        const uint16_t nb = static_cast<uint16_t>(std::min(
+            n, static_cast<unsigned>(std::numeric_limits<uint16_t>::max())));
         return static_cast<unsigned>(
-            dpdk::tx_burst(port_id_, queue_id_, pkts,
-                           static_cast<uint16_t>(std::min(
-                               n, static_cast<unsigned>(
-                                      std::numeric_limits<uint16_t>::max())))));
+            dpdk::tx_burst(port_id_, queue_id_, pkts, nb));
+    }
     }
     return 0;
 }
@@ -403,7 +425,7 @@ void DpdkNetifManager::init(const DatapathConfig& cfg) {
 
         char mac_addr[VGW_MAC_DUMP_LEN];
         util::mac_dump(mac_addr, dpdk::DPDK_ether_addr[i]);
-        printf("init port %d: %s\n", i, mac_addr);
+        SPDLOG_INFO("init port {}: {}", i, mac_addr);
 
         if (cfg_.mode == DatapathMode::Pipeline) {
             ++cnt;
