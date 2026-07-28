@@ -299,7 +299,7 @@ EAL helpers may stay in `netif.cpp` or move to `eal.cpp` opportunistically.
 ## Testing
 
 - Unit: flag parsing → `DatapathConfig`; `workers==1` resolves to DirectRtc.  
-- Existing gtests / `init_pipeline` unchanged.  
+- Existing gtests / `init_services` unchanged.  
 - Lab: `--datapath_mode=pipeline` (current); `--datapath_mode=rtc --rtc_workers=1`; later RSS / soft_rr on real NIC.  
 - Soft RR: force `--rtc_steer=soft_rr --rtc_workers=2` even on multi-queue NIC to validate distributor path.
 

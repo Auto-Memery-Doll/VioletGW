@@ -193,12 +193,13 @@ ctest --test-dir build -L unit          # 21 个单元测试
 **DPDK pktgen** 打物理 NIC（ens34=vgw，ens35=kernel echo，ens36=pktgen）：
 
 ```bash
-./tools/stress/build.sh
+./tools/pktgen/build.sh
 cmake --build build --target vgw
-sudo -E ./tools/stress/run.sh
+sudo ./tools/pktgen/setup_nics.sh bind
+sudo -E ./tools/pktgen/run.sh
 ```
 
-说明：[tools/stress/README.md](../tools/stress/README.md)
+说明：[tools/pktgen/README.md](../tools/pktgen/README.md)
 
 ---
 
@@ -209,6 +210,7 @@ sudo -E ./tools/stress/run.sh
 | 全链路 DPDK I/O 生产化 | `vgw` + 物理 NIC / 多队列 RSS（WSL 上已用 pktgen + net_tap 联调） |
 | VIP/MAC 进 SHM | 仍在 `config.hpp` 常量 |
 | Go 控制面服务化 | 目前为 `vgwcp` CLI，无 RPC/常驻进程 |
+| CP 变更通知（pipe / eventfd） | **未做**：仍靠 `CP_POLL_INTERVAL_MS` 轮询 `poll_apply`。设想：EAL 前建 pipe → fork/exec Go CP（写端）→ 父进程控制线程阻塞 `read` 再读 SHM；SHM `version` 仍为准，pipe 只唤醒。可保留慢 poll 兜底 |
 | 健康检查 | 由 Go CP 实现，结果反映到 SHM upstream 列表 |
 | 多队列 RSS / 多 VIP | 未做 |
 | 一致性哈希 / 权重 | 可扩展 `BalancePolicy`，共用同一节点快照 |

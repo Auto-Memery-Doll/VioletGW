@@ -9,7 +9,7 @@ test/
 ```
 
 Gateway datapath wiring lives in `src/vgw.*` (`VioletGW`). Tests call
-`init_pipeline()` / `handle()` instead of re-implementing forwarder setup.
+`init_services()` / `handle()` instead of re-implementing forwarder setup.
 Lab addresses come from `src/config.hpp` via `test/dpdk/mbuf_fixture.hpp`.
 
 ## Unit tests

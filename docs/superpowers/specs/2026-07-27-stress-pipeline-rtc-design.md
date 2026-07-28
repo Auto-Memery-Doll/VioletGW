@@ -37,16 +37,18 @@ Primary metrics: **`received_pps`** and **`loss_rate`**. **`sent_pps`** only con
 
 ## Topology
 
-Unchanged physical-NIC lab:
+Single-NIC gateway; client is the upstream backend (no kernel echo):
 
 ```text
-pktgen (ens36 / DPDK) ──► vgw (ens34 / DPDK) ──► udp_echo (ens35 / kernel)
-         ▲                                              │
-         └────────────── echo return path ──────────────┘
+pktgen (ens36 / DPDK) ──► vgw (ens34 / DPDK; RX+TX) ──► pktgen
 ens33 = SSH / management — never vfio-bind
+ens35 = unused by stress (kernel)
 ```
 
-L2/L3 defaults match `src/config.hpp` (VIP `192.168.1.100:53`, upstream `10.1.0.2:53`, lab MACs).
+Upstream published via `vgwcp -upstream ${CLIENT_IP}:53` (matches `src/config.hpp` lab seed).
+pktgen uses minimum 2 lcores (`-l 3-4 -m "[4:4].0"`); main cannot own port RX/TX.
+
+L2/L3 defaults: VIP `192.168.1.100:53`, client/upstream `10.0.0.1`, lab MACs in `config.hpp`.
 
 ## Metric definitions
 
@@ -61,7 +63,7 @@ All counts are taken on the **pktgen client port** after warmup baseline reset, 
 | `loss_rate` | `lost / client_sent` (0 if sent == 0) |
 | `offered_bps` / `received_bps` | `pps × frame_bytes × 8`, where `frame_bytes = 14+20+8+payload` |
 
-This is an **end-to-end RTT view**: loss may occur in vgw, upstream echo, or return path — not vgw TX drops alone.
+One-way through gateway back to the client NIC (no separate echo process).
 
 ## Traffic patterns
 
@@ -95,16 +97,15 @@ Defaults: `STRESS_WARMUP=5`, `STRESS_SECONDS=30` (overridable via env).
 
 | File | Action | Role |
 |------|--------|------|
-| `env.sh` | Update | NIC/PCI/IP/MAC, durations, paths; add `STRESS_DATAPATH_MODES`, per-mode lcore vars, matrix defaults |
-| `setup_nics.sh` | Keep | vfio bind/unbind ens34+ens36 |
+| `env.sh` | Update | Single-NIC vgw + client-as-upstream, pktgen 2-core defaults |
+| `setup_nics.sh` | Keep | vfio bind ens34+ens36 |
 | `build.sh` | Keep | Build pktgen |
-| `udp_echo.py` | Keep | Kernel upstream echo |
-| `gen_lua.py` | Rewrite | Emit only M01–M06 (`hot` / `flows`); drop C01–C08 / multi / bidir |
-| `run.sh` | Rewrite | Bind → echo → for each mode start vgw → matrix → CSV |
-| `README.md` | Rewrite | Dual-mode max-throughput stress only |
-| `out/` | Runtime | Not committed; supersedes old `results_vgw.csv` |
+| `gen_lua.py` | Keep | M01–M06 (`hot` / `flows`) |
+| `run.sh` | Update | Bind → vgw + vgwcp → matrix → CSV |
+| `README.md` | Update | Single-NIC / no Python echo |
+| `out/` | Runtime | Not committed |
 
-No new split runners. Every retained file must map to a step of this stress path.
+No Python upstream echo. Every retained file must map to a step of this stress path.
 
 ## Run flow
 
@@ -116,13 +117,12 @@ sudo -E ./tools/stress/run.sh
 
 Inside `run.sh`:
 
-1. Optionally bind DPDK NICs (`STRESS_BIND=1` default).
-2. Configure ens35 + start `udp_echo.py`.
-3. For each mode in `STRESS_DATAPATH_MODES` (default `pipeline rtc`):
-   - Start `vgw` with mode-specific flags and lcores.
+1. Optionally bind DPDK NICs (`STRESS_BIND=1` default): vgw + client.
+2. For each mode in `STRESS_DATAPATH_MODES` (default `pipeline rtc`):
+   - Start single-port `vgw`; publish upstream via `vgwcp`.
    - For each M01–M06: generate Lua, run pktgen at rate 100, parse `PKTGEN_SUMMARY`, append CSV row.
    - Stop `vgw`.
-4. Stop echo; leave NICs bound with unbind hint if this run bound them.
+3. Leave NICs bound with unbind hint if this run bound them.
 
 Single-mode debug: `STRESS_DATAPATH_MODES=pipeline` or `rtc`.
 
