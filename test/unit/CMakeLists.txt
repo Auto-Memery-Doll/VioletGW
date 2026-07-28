@@ -2,13 +2,19 @@
 add_subdirectory(base)
 
 vgw_add_gtest(packet_test packet_test.cpp)
-target_link_libraries(packet_test PRIVATE packet)
+target_link_libraries(packet_test PRIVATE packet neighbor)
 
 vgw_add_gtest(session_test session_test.cpp)
 target_link_libraries(session_test PRIVATE session)
 
 vgw_add_gtest(forward_test forward_test.cpp)
 target_link_libraries(forward_test PRIVATE forward)
+
+vgw_add_gtest(neighbor_test neighbor_test.cpp)
+target_link_libraries(neighbor_test PRIVATE neighbor)
+
+vgw_add_gtest(arp_test arp_test.cpp)
+target_link_libraries(arp_test PRIVATE arp vgw_core)
 
 vgw_add_gtest(upstream_test upstream_test.cpp)
 target_link_libraries(upstream_test PRIVATE upstream)

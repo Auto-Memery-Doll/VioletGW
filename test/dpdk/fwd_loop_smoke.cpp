@@ -53,8 +53,8 @@ int main(int argc, char** argv) {
     const std::string shm =
         std::string("/vgw_fwd_smoke_") + std::to_string(getpid());
     vgw::VioletGW gw;
-    if (gw.init_pipeline(shm.c_str()) != 0) {
-        std::fprintf(stderr, "init_pipeline failed\n");
+    if (gw.init_services(shm.c_str()) != 0) {
+        std::fprintf(stderr, "init_services failed\n");
         vgw::control::CpShm::unlink_name(shm);
         rte_eal_cleanup();
         return 1;
@@ -71,7 +71,8 @@ int main(int argc, char** argv) {
     vgw::bench::fill_forward_mbuf(m, vgw::bench::kClientPortBase);
 
     bool ok = true;
-    if (gw.handle(m, /*now_ms=*/1) != vgw::forward::HandleResult::tx_forward) {
+    if (gw.handle(m, /*now_ms=*/1).result !=
+        vgw::forward::HandleResult::tx_forward) {
         std::fprintf(stderr, "FAIL forward handle\n");
         ok = false;
     }
@@ -97,7 +98,7 @@ int main(int argc, char** argv) {
 
     if (ok) {
         vgw::bench::fill_reverse_mbuf(m, snat);
-        if (gw.handle(m, /*now_ms=*/2) !=
+        if (gw.handle(m, /*now_ms=*/2).result !=
             vgw::forward::HandleResult::tx_reverse) {
             std::fprintf(stderr, "FAIL reverse handle\n");
             ok = false;

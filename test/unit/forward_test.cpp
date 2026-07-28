@@ -1,4 +1,6 @@
+#include "config.hpp"
 #include "forward.hpp"
+#include "neighbor.hpp"
 #include "packet.hpp"
 #include "session.hpp"
 
@@ -12,6 +14,7 @@
 
 using vgw::forward::ForwardConfig;
 using vgw::forward::Forwarder;
+using vgw::forward::HandleOutcome;
 using vgw::forward::HandleResult;
 using vgw::forward::Upstream;
 using vgw::forward::apply_forward_nat;
@@ -78,10 +81,10 @@ uint16_t frame_len() {
 }  // namespace
 
 TEST(ForwardNatTest, ForwardAndReverseRewrite) {
-    const uint32_t client = RTE_IPV4(10, 0, 0, 1);
-    const uint32_t vip = RTE_IPV4(192, 168, 1, 100);
-    const uint32_t gw = RTE_IPV4(192, 168, 1, 10);
-    const uint32_t upstream = RTE_IPV4(10, 1, 0, 2);
+    const uint32_t client = rte_cpu_to_be_32(RTE_IPV4(10, 0, 0, 1));
+    const uint32_t vip = rte_cpu_to_be_32(RTE_IPV4(192, 168, 1, 100));
+    const uint32_t gw = rte_cpu_to_be_32(RTE_IPV4(192, 168, 1, 10));
+    const uint32_t upstream = rte_cpu_to_be_32(RTE_IPV4(10, 1, 0, 2));
 
     SessionTable table(gw);
     auto* s = table.create(
@@ -115,10 +118,10 @@ TEST(ForwardNatTest, ForwardAndReverseRewrite) {
 }
 
 TEST(ForwarderTest, CreatesSessionAndForwardsVipTraffic) {
-    const uint32_t client = RTE_IPV4(10, 0, 0, 1);
-    const uint32_t vip = RTE_IPV4(192, 168, 1, 100);
-    const uint32_t gw = RTE_IPV4(192, 168, 1, 10);
-    const uint32_t upstream = RTE_IPV4(10, 1, 0, 2);
+    const uint32_t client = rte_cpu_to_be_32(RTE_IPV4(10, 0, 0, 1));
+    const uint32_t vip = rte_cpu_to_be_32(RTE_IPV4(192, 168, 1, 100));
+    const uint32_t gw = rte_cpu_to_be_32(RTE_IPV4(192, 168, 1, 10));
+    const uint32_t upstream = rte_cpu_to_be_32(RTE_IPV4(10, 1, 0, 2));
 
     SessionTable table(gw);
     ForwardConfig cfg;
@@ -136,7 +139,7 @@ TEST(ForwarderTest, CreatesSessionAndForwardsVipTraffic) {
     rte_mbuf m;
     bind_mbuf(&m, frame, frame_len());
 
-    EXPECT_EQ(fwd.handle(&m, 1), HandleResult::tx_forward);
+    EXPECT_EQ(fwd.handle(&m, 1).result, HandleResult::tx_forward);
     EXPECT_EQ(table.size(), 1u);
 
     PacketView view;
@@ -146,19 +149,49 @@ TEST(ForwarderTest, CreatesSessionAndForwardsVipTraffic) {
 }
 
 TEST(ForwarderTest, DropsUnknownNonVip) {
-    SessionTable table(RTE_IPV4(192, 168, 1, 10));
+    SessionTable table(rte_cpu_to_be_32(RTE_IPV4(192, 168, 1, 10)));
     ForwardConfig cfg;
-    cfg.vip = {RTE_IPV4(192, 168, 1, 100), 53};
-    cfg.gateway_ip_be = RTE_IPV4(192, 168, 1, 10);
+    cfg.vip = {rte_cpu_to_be_32(RTE_IPV4(192, 168, 1, 100)), 53};
+    cfg.gateway_ip_be = rte_cpu_to_be_32(RTE_IPV4(192, 168, 1, 10));
 
     Forwarder fwd(cfg, &table, [](const vgw::session::FlowKey&, Upstream*) {
         return false;
     });
 
     uint8_t frame[128];
-    fill_udp(frame, sizeof(frame), RTE_IPV4(10, 0, 0, 1), 1,
-             RTE_IPV4(8, 8, 8, 8), 53);
+    fill_udp(frame, sizeof(frame), rte_cpu_to_be_32(RTE_IPV4(10, 0, 0, 1)), 1,
+             rte_cpu_to_be_32(RTE_IPV4(8, 8, 8, 8)), 53);
     rte_mbuf m;
     bind_mbuf(&m, frame, frame_len());
-    EXPECT_EQ(fwd.handle(&m, 1), HandleResult::drop);
+    EXPECT_EQ(fwd.handle(&m, 1).result, HandleResult::drop);
+}
+
+TEST(ForwarderTest, PendingArpWhenNeighborMiss) {
+    const uint32_t client = rte_cpu_to_be_32(RTE_IPV4(10, 0, 0, 1));
+    const uint32_t vip = rte_cpu_to_be_32(RTE_IPV4(192, 168, 1, 100));
+    const uint32_t gw = rte_cpu_to_be_32(RTE_IPV4(192, 168, 1, 10));
+    const uint32_t upstream = rte_cpu_to_be_32(RTE_IPV4(10, 1, 0, 2));
+
+    vgw::neighbor::NeighborTable neighbors;
+    SessionTable table(gw);
+    ForwardConfig cfg;
+    cfg.vip = {vip, 53};
+    cfg.gateway_ip_be = gw;
+
+    Forwarder fwd(cfg, &table,
+                  [&](const vgw::session::FlowKey&, Upstream* up) {
+                      up->ip_be = upstream;
+                      up->port = 53;
+                      return true;
+                  },
+                  &neighbors);
+
+    uint8_t frame[128];
+    fill_udp(frame, sizeof(frame), client, 4000, vip, 53);
+    rte_mbuf m;
+    bind_mbuf(&m, frame, frame_len());
+
+    const HandleOutcome o = fwd.handle(&m, 1);
+    EXPECT_EQ(o.result, HandleResult::pending_arp);
+    EXPECT_EQ(o.arp_wait_ip_be, upstream);
 }

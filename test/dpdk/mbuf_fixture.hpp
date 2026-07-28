@@ -26,7 +26,7 @@ inline uint32_t kUpstream() {
 inline uint16_t kVipPort() { return config::VIP_PORT; }
 inline uint16_t kUpPort() { return config::UPSTREAM0_PORT; }
 
-constexpr uint32_t kClient = RTE_IPV4(10, 0, 0, 1);
+const uint32_t kClient = rte_cpu_to_be_32(RTE_IPV4(10, 0, 0, 1));
 constexpr uint16_t kClientPortBase = 4000;
 
 inline uint16_t frame_len(uint16_t payload_len = 4) {

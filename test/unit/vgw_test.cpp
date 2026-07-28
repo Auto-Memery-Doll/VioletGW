@@ -5,6 +5,7 @@
 #include <cstring>
 #include <gtest/gtest.h>
 #include <netinet/in.h>
+#include <rte_arp.h>
 #include <rte_byteorder.h>
 #include <rte_ether.h>
 #include <rte_ip.h>
@@ -14,6 +15,7 @@
 #include <unistd.h>
 
 using vgw::VioletGW;
+using vgw::forward::HandleOutcome;
 using vgw::forward::HandleResult;
 using vgw::packet::PacketView;
 using vgw::packet::ParseStatus;
@@ -77,7 +79,7 @@ protected:
     void SetUp() override {
         shm_ = std::string("/vgw_unit_") + std::to_string(getpid()) + "_" +
                std::to_string(reinterpret_cast<uintptr_t>(this));
-        ASSERT_EQ(gw_.init_pipeline(shm_.c_str()), 0);
+        ASSERT_EQ(gw_.init_services(shm_.c_str()), 0);
     }
 
     void TearDown() override {
@@ -91,7 +93,7 @@ protected:
 }  // namespace
 
 TEST_F(VioletGWPipelineTest, ForwardAndReverseViaGatewayHandle) {
-    const uint32_t client = RTE_IPV4(10, 0, 0, 1);
+    const uint32_t client = rte_cpu_to_be_32(RTE_IPV4(10, 0, 0, 1));
     const uint32_t vip = VioletGW::ipv4_from(vgw::config::VIP_IP_OCTETS);
     const uint32_t gw_ip = VioletGW::ipv4_from(vgw::config::GATEWAY_IP_OCTETS);
     const uint32_t upstream =
@@ -103,7 +105,7 @@ TEST_F(VioletGWPipelineTest, ForwardAndReverseViaGatewayHandle) {
     fill_udp(buf, sizeof(buf), client, 4000, vip, vgw::config::VIP_PORT);
     bind_mbuf(&m, buf, len);
 
-    ASSERT_EQ(gw_.handle(&m, 1), HandleResult::tx_forward);
+    ASSERT_EQ(gw_.handle(&m, 1).result, HandleResult::tx_forward);
 
     PacketView view;
     ASSERT_EQ(parse_udp_ipv4(&m, &view, false), ParseStatus::ok);
@@ -117,7 +119,7 @@ TEST_F(VioletGWPipelineTest, ForwardAndReverseViaGatewayHandle) {
              snat);
     bind_mbuf(&m, buf, len);
 
-    ASSERT_EQ(gw_.handle(&m, 2), HandleResult::tx_reverse);
+    ASSERT_EQ(gw_.handle(&m, 2).result, HandleResult::tx_reverse);
     ASSERT_EQ(parse_udp_ipv4(&m, &view, false), ParseStatus::ok);
     EXPECT_EQ(view.src_ip(), vip);
     EXPECT_EQ(view.dst_ip(), client);
@@ -128,4 +130,39 @@ TEST_F(VioletGWPipelineTest, ForwardAndReverseViaGatewayHandle) {
 TEST_F(VioletGWPipelineTest, PollControlIdempotent) {
     EXPECT_FALSE(gw_.poll_control());
     EXPECT_GE(gw_.upstreams()->size(), 1u);
+}
+
+TEST_F(VioletGWPipelineTest, ArpRequestForGateway) {
+    const uint32_t gw_ip = VioletGW::ipv4_from(vgw::config::GATEWAY_IP_OCTETS);
+
+    rte_ether_addr requester{};
+    requester.addr_bytes[0] = 0xaa;
+
+    alignas(64) uint8_t buf[128];
+    const uint16_t len = static_cast<uint16_t>(sizeof(rte_ether_hdr) +
+                                               sizeof(rte_arp_hdr));
+    std::memset(buf, 0, len);
+    auto* eth = reinterpret_cast<rte_ether_hdr*>(buf);
+    rte_ether_addr_copy(&requester, &eth->src_addr);
+    eth->ether_type = rte_cpu_to_be_16(RTE_ETHER_TYPE_ARP);
+    auto* arp = reinterpret_cast<rte_arp_hdr*>(buf + sizeof(rte_ether_hdr));
+    arp->arp_hardware = rte_cpu_to_be_16(RTE_ARP_HRD_ETHER);
+    arp->arp_protocol = rte_cpu_to_be_16(RTE_ETHER_TYPE_IPV4);
+    arp->arp_hlen = RTE_ETHER_ADDR_LEN;
+    arp->arp_plen = 4;
+    arp->arp_opcode = rte_cpu_to_be_16(RTE_ARP_OP_REQUEST);
+    rte_ether_addr_copy(&requester, &arp->arp_data.arp_sha);
+    arp->arp_data.arp_sip = rte_cpu_to_be_32(RTE_IPV4(192, 168, 1, 50));
+    arp->arp_data.arp_tip = gw_ip;
+
+    rte_mbuf m;
+    bind_mbuf(&m, buf, len);
+    ASSERT_EQ(gw_.handle(&m, 1).result, HandleResult::tx_arp);
+
+    rte_ether_hdr* reth = nullptr;
+    rte_arp_hdr* rarp = nullptr;
+    ASSERT_EQ(vgw::packet::parse_arp(&m, &reth, &rarp),
+              vgw::packet::ParseStatus::ok);
+    EXPECT_EQ(rte_be_to_cpu_16(rarp->arp_opcode), RTE_ARP_OP_REPLY);
+    EXPECT_EQ(rarp->arp_data.arp_sip, gw_ip);
 }

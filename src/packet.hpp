@@ -1,6 +1,9 @@
 #pragma once
 
+#include "neighbor.hpp"
+
 #include <cstdint>
+#include <rte_arp.h>
 #include <rte_ether.h>
 #include <rte_ip.h>
 #include <rte_mbuf.h>
@@ -40,6 +43,19 @@ struct PacketView {
  * @param verify_cksum  if true, validate IPv4 and UDP checksums when UDP cksum != 0
  */
 ParseStatus parse_udp_ipv4(rte_mbuf* m, PacketView* out, bool verify_cksum = false);
+
+/** Return Ethernet type in host byte order, or 0 if mbuf too short. */
+uint16_t ethertype(rte_mbuf* m);
+
+/** Parse Ethernet + IPv4 ARP. Requires hardware=Ethernet, protocol=IPv4. */
+ParseStatus parse_arp(rte_mbuf* m,
+                      rte_ether_hdr** eth_out,
+                      rte_arp_hdr** arp_out);
+
+/** Learn IPv4 src → eth.src into neighbor table (best-effort). */
+void passive_learn_ipv4(rte_mbuf* m,
+                        neighbor::NeighborTable* neighbors,
+                        uint64_t now_ms);
 
 /** Recompute and write IPv4 header checksum. */
 void refresh_ipv4_checksum(rte_ipv4_hdr* ip);

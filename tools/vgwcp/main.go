@@ -1,5 +1,6 @@
 // Command vgwcp publishes upstream list + balance policy into VGW SHM.
-// Layout matches src/vgw_cp_shm.h (little-endian, natural alignment).
+// Layout matches src/vgw_cp_shm.h: native endian for magic/version/count/port;
+// endpoint ip_be is stored in network byte order (same as rte_ipv4_hdr).
 package main
 
 import (
@@ -141,7 +142,9 @@ func publish(name string, policy uint8, eps []endpoint) error {
 	off := 12
 	for i := 0; i < maxEP; i++ {
 		if i < len(eps) {
-			binary.LittleEndian.PutUint32(b[off:off+4], eps[i].ipBE)
+			// ip_be: network byte order (matches C rte_ipv4_hdr / ipv4_from).
+			binary.BigEndian.PutUint32(b[off:off+4], eps[i].ipBE)
+			// port: host byte order (uint16 in the C struct on this lab).
 			binary.LittleEndian.PutUint16(b[off+4:off+6], eps[i].port)
 			binary.LittleEndian.PutUint16(b[off+6:off+8], 0)
 		} else {

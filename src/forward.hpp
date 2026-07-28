@@ -1,5 +1,6 @@
 #pragma once
 
+#include "neighbor.hpp"
 #include "packet.hpp"
 #include "session.hpp"
 
@@ -39,6 +40,17 @@ enum class HandleResult : uint8_t {
     drop = 0,
     tx_forward,  // rewritten toward upstream
     tx_reverse,  // rewritten toward client
+    tx_arp,      // ARP reply or other L2 control
+    pending_arp, // L4 accepted; hold until neighbor MAC is resolved
+};
+
+/** Result of one datapath handle() call. */
+struct HandleOutcome {
+    HandleResult result = HandleResult::drop;
+    /** Target IPv4 (network order) when result == pending_arp. */
+    uint32_t arp_wait_ip_be = 0;
+    /** Populated when an ARP reply installed a neighbor entry. */
+    uint32_t learned_ip_be = 0;
 };
 
 session::FlowKey flow_key_from_view(const packet::PacketView& v);
@@ -66,20 +78,26 @@ class Forwarder {
 public:
     Forwarder(ForwardConfig cfg,
               session::SessionTable* sessions,
-              UpstreamPicker picker);
+              UpstreamPicker picker,
+              neighbor::NeighborTable* neighbors = nullptr);
 
-    HandleResult handle(rte_mbuf* m, uint64_t now_ms);
+    HandleOutcome handle(rte_mbuf* m, uint64_t now_ms);
 
     session::SessionTable* sessions() { return sessions_; }
     const ForwardConfig& config() const { return cfg_; }
+    void set_gateway_mac(const rte_ether_addr& mac) { cfg_.gateway_mac = mac; }
+
+    /** Apply gateway/src + resolved next-hop MAC to an already-NAT'd mbuf. */
+    bool finish_l2(rte_mbuf* m, uint32_t next_hop_ip_be) const;
 
 private:
-    HandleResult handle_forward(packet::PacketView* v, uint64_t now_ms);
-    HandleResult handle_reverse(packet::PacketView* v, uint64_t now_ms);
+    HandleOutcome handle_forward(packet::PacketView* v, uint64_t now_ms);
+    HandleOutcome handle_reverse(packet::PacketView* v, uint64_t now_ms);
 
     ForwardConfig cfg_;
     session::SessionTable* sessions_;
     UpstreamPicker picker_;
+    neighbor::NeighborTable* neighbors_;
 };
 
 }  // namespace forward
