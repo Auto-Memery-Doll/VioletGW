@@ -1,5 +1,4 @@
-#ifndef FLOW_GATEWAY_RING_HPP
-#define FLOW_GATEWAY_RING_HPP
+#pragma once
 
 #include "base/noncopyable.hpp"
 #include <cstddef>
@@ -12,7 +11,7 @@
 #include <rte_ring.h>
 #include <rte_ring_core.h>
 
-namespace fg {
+namespace vgw {
 
 template<typename T>
 class Ring : public base::noncopyable {
@@ -63,4 +62,3 @@ typename Ring<T>::ptr make_ring(const char* name, unsigned int count, unsigned i
 
 }
 
-#endif // !FLOW_GATEWAY_RING_HPP

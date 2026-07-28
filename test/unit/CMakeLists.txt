@@ -1,0 +1,29 @@
+# Unit tests (no PCI / no real eth ports).
+add_subdirectory(base)
+
+vgw_add_gtest(packet_test packet_test.cpp)
+target_link_libraries(packet_test PRIVATE packet neighbor)
+
+vgw_add_gtest(session_test session_test.cpp)
+target_link_libraries(session_test PRIVATE session)
+
+vgw_add_gtest(forward_test forward_test.cpp)
+target_link_libraries(forward_test PRIVATE forward)
+
+vgw_add_gtest(neighbor_test neighbor_test.cpp)
+target_link_libraries(neighbor_test PRIVATE neighbor)
+
+vgw_add_gtest(arp_test arp_test.cpp)
+target_link_libraries(arp_test PRIVATE arp vgw_core)
+
+vgw_add_gtest(upstream_test upstream_test.cpp)
+target_link_libraries(upstream_test PRIVATE upstream)
+
+vgw_add_gtest(cp_shm_test cp_shm_test.cpp)
+target_link_libraries(cp_shm_test PRIVATE control)
+
+vgw_add_gtest(vgw_test vgw_test.cpp)
+target_link_libraries(vgw_test PRIVATE vgw_core)
+
+vgw_add_gtest(datapath_config_test datapath_config_test.cpp)
+target_link_libraries(datapath_config_test PRIVATE vgw_dpdk_io)

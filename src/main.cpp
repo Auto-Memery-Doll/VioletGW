@@ -1,17 +1,15 @@
+#include "vgw.h"
 
-#include "dpdk_netif.hpp"
-#include "netif_driver.hpp"
-#include "stack.hpp"
+#include "dpdk/datapath_flags.hpp"
+
+#include <vector>
 
 int main(int argc, char** argv) {
-    fg::dpdk::init(argc, argv); /** dpdk eal环境初始化 */
-
-    fg::dpdk_netif_mg()->init();    /** 初始化dpdk网卡，从网络中接收数据 */
-    fg::proto_stack()->init();  /** 启动协议栈 */
-    fg::lwip_netif_init();  /** 初始化协议栈的网卡 */
-    fg::netif_driver()->init(); /** 从dpdk网卡上接收数据传递到协议栈 */
-
-    while (true);
-
-    return 0;
+    std::vector<char*> eal_argv;
+    vgw::parse_vgw_command_line_flags(argc, argv, &eal_argv);
+    vgw::VioletGW app;
+    if (const int rc = app.init(static_cast<int>(eal_argv.size()), eal_argv.data())) {
+        return rc;
+    }
+    return app.run();
 }

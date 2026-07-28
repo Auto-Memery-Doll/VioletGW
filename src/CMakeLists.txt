@@ -1,24 +1,46 @@
 set(SRC ${CMAKE_SOURCE_DIR}/src)
-set(LWIP_CORE ${SRC}/lwip)
-set(BALANCE_CORE ${SRC}/balance)
-set(CACHE_CORE ${SRC}/cache)
-set(COROUTINE_CORE ${SRC}/coroutine)
-set(THROTTLE_CORE ${SRC}/throttle)
-set(BASE_CORE ${SRC}/base)
 
-add_subdirectory(${LWIP_CORE} ${BUILD_DIR}/Lwip)
-add_subdirectory(${BASE_CORE} ${BUILD_DIR}/Base)
-add_subdirectory(${BALANCE_CORE} ${BUILD_DIR}/Balance)
-add_subdirectory(${CACHE_CORE} ${BUILD_DIR}/Cache)
-add_subdirectory(${COROUTINE_CORE} ${BUILD_DIR}/Coroutine)
-add_subdirectory(${THROTTLE_CORE} ${BUILD_DIR}/Throttle)
+add_subdirectory(${SRC}/base ${BUILD_DIR}/Base)
+add_subdirectory(${SRC}/dpdk ${BUILD_DIR}/Dpdk)
 
-# 使用file(GLOB)来获取当前目录下所有的.cpp文件
-file(GLOB SOURCES "*.cpp")
+add_library(packet packet.cpp)
+target_include_directories(packet PUBLIC ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(packet PUBLIC neighbor)
 
-# 显示获取的源文件列表
-message("Sources: ${SOURCES}")
+add_library(session session.cpp)
+target_include_directories(session PUBLIC ${CMAKE_SOURCE_DIR}/src)
 
-# 添加可执行文件目标
-add_executable(flow_gw ${SOURCES})
-target_link_libraries(flow_gw base)
+add_library(neighbor neighbor.cpp)
+target_include_directories(neighbor PUBLIC ${CMAKE_SOURCE_DIR}/src)
+
+add_library(arp arp.cpp)
+target_include_directories(arp PUBLIC ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(arp PUBLIC neighbor packet vgw_dpdk_io)
+
+add_library(forward forward.cpp)
+target_include_directories(forward PUBLIC ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(forward PUBLIC base packet session neighbor)
+
+add_library(upstream upstream.cpp)
+target_include_directories(upstream PUBLIC ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(upstream PUBLIC session)
+
+add_library(control cp_shm.cpp)
+target_include_directories(control PUBLIC ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(control PUBLIC upstream)
+find_library(LIBRT rt)
+if(LIBRT)
+    target_link_libraries(control PUBLIC ${LIBRT})
+endif()
+
+add_library(vgw_core vgw.cpp)
+target_include_directories(vgw_core PUBLIC ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(vgw_core PUBLIC base vgw_dpdk_io packet session forward upstream control neighbor arp)
+
+add_executable(vgw main.cpp)
+target_link_libraries(vgw PRIVATE vgw_core)
+if(TARGET gflags::gflags)
+    target_link_libraries(vgw PRIVATE gflags::gflags)
+else()
+    target_link_libraries(vgw PRIVATE gflags)
+endif()
