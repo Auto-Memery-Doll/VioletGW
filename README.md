@@ -41,3 +41,6 @@ Notes:
 ## TODO
 
 - **多 VIP / 多 upstream 集群**：当前控制面 SHM 与 `UpstreamTable` 只有单一扁平 endpoint 池，多服务集群会混用同一后端列表。后续按 VIP（或 cluster id）分区下发与选路。
+- **EBPF Tool** integration
+- **go client**
+- **saas platform**
