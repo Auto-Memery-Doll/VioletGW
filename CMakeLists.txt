@@ -59,6 +59,15 @@ add_library(vgw_spdlog INTERFACE)
 target_link_libraries(vgw_spdlog INTERFACE spdlog::spdlog)
 link_libraries(vgw_spdlog)
 
+# Datapath I/O debug logs (forward/classify/TX path). Off by default.
+option(VGW_IO_TRACE "Enable datapath I/O debug logs" OFF)
+if(VGW_IO_TRACE)
+    add_compile_definitions(VGW_IO_TRACE=1)
+else()
+    add_compile_definitions(VGW_IO_TRACE=0)
+endif()
+message(STATUS "VGW_IO_TRACE=${VGW_IO_TRACE}")
+
 enable_testing()
 
 set(BUILD_DIR bin)
