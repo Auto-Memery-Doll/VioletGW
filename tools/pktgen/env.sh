@@ -65,7 +65,18 @@ fi
 # --- Bench ---
 export STRESS_SECONDS="${STRESS_SECONDS:-30}"
 export STRESS_WARMUP="${STRESS_WARMUP:-5}"
+# Full-blast: PKTGEN_RATE=100 (% of theoretical line rate). V1 used this.
+# For contention, prefer PKTGEN_OFFER_SCALE / PKTGEN_TARGET_MPPS (see README):
+# pktgen "rate" is % of wire rate; 5% of 10G@46B is still ~0.9 Mpps and saturates
+# vmxnet3 the same as 100%. Scale is relative to measured baseline Mpps instead.
 export PKTGEN_RATE="${PKTGEN_RATE:-100}"
+export PKTGEN_OFFER_SCALE="${PKTGEN_OFFER_SCALE:-1}"
+# Measured full-blast client sent_Mpps (M01-sized frames on this lab ≈ 0.68).
+export PKTGEN_BASELINE_MPPS="${PKTGEN_BASELINE_MPPS:-0.68}"
+# If set, absolute target Mpps (overrides OFFER_SCALE × BASELINE).
+export PKTGEN_TARGET_MPPS="${PKTGEN_TARGET_MPPS:-}"
+# Link speed used to convert Mpps → pktgen rate % (vmxnet3 often reports 10G).
+export PKTGEN_LINK_GBPS="${PKTGEN_LINK_GBPS:-10}"
 export STRESS_OUT_DIR="${STRESS_OUT_DIR:-${STRESS_DIR}/out}"
 export STRESS_BIND="${STRESS_BIND:-1}"
 
@@ -76,3 +87,15 @@ export VGW_LCORES_RTC="${VGW_LCORES_RTC:-0}"
 export PKTGEN_LCORES="${PKTGEN_LCORES:-3-4}"
 export PKTGEN_MAP="${PKTGEN_MAP:-[4:4].0}"
 export PKTGEN_TIMEOUT_SEC="${PKTGEN_TIMEOUT_SEC:-$((STRESS_SECONDS + STRESS_WARMUP + 90))}"
+
+# --- Profile (perf + FlameGraph); off by default ---
+#   sudo PROFILE=1 STRESS_DATAPATH_MODES=pipeline PROFILE_CASE=M01 ./run.sh
+#   sudo PROFILE=1 PROFILE_CASE=all PKTGEN_OFFER_SCALE=0.1 ./run.sh   # all cases
+export PROFILE="${PROFILE:-0}"
+export PROFILE_CASE="${PROFILE_CASE:-M01}"
+# Optional space-separated list; overrides PROFILE_CASE when set (e.g. "M01 M02").
+export PROFILE_CASES="${PROFILE_CASES:-}"
+export PERF_FREQ="${PERF_FREQ:-99}"
+export PERF_CALL_GRAPH="${PERF_CALL_GRAPH:-dwarf}"
+export PERF_WARMUP_SLACK_SEC="${PERF_WARMUP_SLACK_SEC:-1}"
+export FLAMEGRAPH_DIR="${FLAMEGRAPH_DIR:-${DEV_HOME}/FlameGraph}"
